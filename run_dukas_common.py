@@ -75,6 +75,7 @@ def build_default_runner_config(
             fill_timeout_bars=288,
             fail_fast_bars=0,
             fail_fast_rr=0.0,
+            relax_counter_htf_bias=True,
             spread_pips=spread_pips,
             entry_slippage_pips=slip_pips,
             exit_slippage_pips=slip_pips,

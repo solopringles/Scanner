@@ -34,11 +34,21 @@ def collect_dol_candidates(ctx: dict) -> list[DOLCandidate]:
     if (v := ctx.get("pwl")) is not None:
         push(DOLCandidate(DOLType.PWH_PWL, float(v), "short", source="pwl", strength=0.8))
     if (v := ctx.get("smt_open")) is not None:
-        # Direction comes from current bias intent if provided.
-        direction = str(ctx.get("smt_open_direction", "long"))
+        # Prefer signal direction so TP aligns with the setup, not the HTF bias.
+        direction = str(
+            ctx.get(
+                "signal_direction",
+                ctx.get("desired_direction", ctx.get("smt_open_direction", "long")),
+            )
+        )
         push(DOLCandidate(DOLType.SMT_OPEN, float(v), direction, source="smt_open", strength=0.95))
     if (v := ctx.get("internal_dol")) is not None:
-        direction = str(ctx.get("internal_dol_direction", "long"))
+        direction = str(
+            ctx.get(
+                "signal_direction",
+                ctx.get("desired_direction", ctx.get("internal_dol_direction", "long")),
+            )
+        )
         current_price = ctx.get("current_price")
         strength = 0.6
         if current_price is not None:
@@ -88,6 +98,13 @@ def filter_dol_by_bias(candidates: list[DOLCandidate], bias: BiasDirection) -> l
     return [c for c in candidates if c.direction == direction]
 
 
+def filter_dol_by_direction(candidates: list[DOLCandidate], direction: str) -> list[DOLCandidate]:
+    direction = direction.lower().strip()
+    if direction not in {"long", "short"}:
+        return candidates
+    return [c for c in candidates if c.direction == direction]
+
+
 def remove_invalid_dol(candidates: list[DOLCandidate], ctx: dict, cfg: DOLConfig) -> list[DOLCandidate]:
     """
     Removes invalid levels based on spec invalidation rules.
@@ -110,14 +127,15 @@ def remove_invalid_dol(candidates: list[DOLCandidate], ctx: dict, cfg: DOLConfig
 
 def rank_dol_candidates(candidates: list[DOLCandidate]) -> list[DOLCandidate]:
     priority = {
-        # Updated preference: session -> SMT open -> EQH/EQL -> PDH/PDL -> PWH/PWL.
-        DOLType.SESSION_HL: 0,
-        DOLType.SMT_OPEN: 1,
-        DOLType.EQH_EQL: 2,
-        DOLType.PDH_PDL: 3,
-        DOLType.PWH_PWL: 4,
-        DOLType.STRUCT_SWING: 5,
-        DOLType.INTERNAL_DOL: 6,
+        # Updated preference from lecture notes:
+        # SMT open -> internal DOL -> session highs/lows -> EQH/EQL -> PDH/PDL -> PWH/PWL.
+        DOLType.SMT_OPEN: 0,
+        DOLType.INTERNAL_DOL: 1,
+        DOLType.SESSION_HL: 2,
+        DOLType.EQH_EQL: 3,
+        DOLType.PDH_PDL: 4,
+        DOLType.PWH_PWL: 5,
+        DOLType.STRUCT_SWING: 6,
     }
     def _rank_key(c: DOLCandidate) -> tuple[int, float]:
         eff_priority = priority.get(c.dol_type, 9)
@@ -131,8 +149,16 @@ def rank_dol_candidates(candidates: list[DOLCandidate]) -> list[DOLCandidate]:
 def select_target_dol(ctx: dict, cfg: DOLConfig | None = None) -> DOLCandidate | None:
     cfg = cfg or DOLConfig()
     bias = ctx.get("bias", BiasDirection.NEUTRAL)
+    desired_direction = str(
+        ctx.get(
+            "signal_direction",
+            ctx.get("desired_direction", ctx.get("trade_direction", "")),
+        )
+    ).lower().strip()
     candidates = collect_dol_candidates(ctx)
-    if cfg.require_bias_alignment and not cfg.relax_all_filters:
+    if desired_direction in {"long", "short"}:
+        candidates = filter_dol_by_direction(candidates, desired_direction)
+    elif cfg.require_bias_alignment and not cfg.relax_all_filters:
         candidates = filter_dol_by_bias(candidates, bias)
     if not cfg.relax_all_filters:
         candidates = remove_invalid_dol(candidates, ctx, cfg)

@@ -101,6 +101,8 @@ class RiskConfig:
     fbos_sl_buffer_pips: float = 3.0
     # "Enlightened" mode uses OB boundary instead of sweep extreme for sweep models.
     enlightened_sl_mode: bool = False
+    # Debug mode: keep valid counter-HTF pullbacks available for review.
+    relax_counter_htf_bias: bool = False
     reward_multiplier: float = 2.0
     partial_rr: float = 1.0
     min_rr_threshold: float = 0.0

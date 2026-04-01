@@ -14,7 +14,7 @@ from .types import InvalidationReason
 def check_invalidation(ctx: dict) -> InvalidationReason | None:
     if ctx.get("dol_hit", False):
         return InvalidationReason.DOL_ALREADY_HIT
-    if ctx.get("counter_htf_bias", False):
+    if ctx.get("counter_htf_bias", False) and not ctx.get("relax_counter_htf_bias", False):
         return InvalidationReason.COUNTER_HTF_BIAS
     if ctx.get("ob_already_tapped", False):
         return InvalidationReason.OB_ALREADY_TAPPED

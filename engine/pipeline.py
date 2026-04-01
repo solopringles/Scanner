@@ -399,6 +399,7 @@ def _dol_ctx_from_row(
     row: pd.Series,
     bias: BiasDirection,
     *,
+    signal_direction: str | None = None,
     pip_value: float | None = None,
     current_timestamp: pd.Timestamp | None = None,
     htf_order_blocks: list[OBZone] | None = None,
@@ -420,6 +421,7 @@ def _dol_ctx_from_row(
             "internal_dol_direction",
             "long" if bias == BiasDirection.BULLISH else "short" if bias == BiasDirection.BEARISH else "long",
         ),
+        "signal_direction": signal_direction,
         "current_price": float(current_price) if current_price is not None and pd.notna(current_price) else None,
         "current_timestamp": pd.Timestamp(current_timestamp) if current_timestamp is not None else None,
         "pip_value": float(pip_value) if pip_value is not None else None,
@@ -906,23 +908,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
             active_cycle_dol_price = None
 
         row = df.iloc[i]
-        target_dol = (
-            select_target_dol(
-                _dol_ctx_from_row(
-                    row,
-                    bias,
-                    pip_value=risk_cfg.pip_value,
-                    current_timestamp=idx[i],
-                    htf_order_blocks=htf_order_blocks,
-                ),
-                cfg=dol_cfg,
-            )
-            if bias != BiasDirection.NEUTRAL
-            else None
-        )
-        target_price = None if target_dol is None else float(target_dol.price)
-        if target_price is not None:
-            active_cycle_dol_price = target_price
+        target_price = None
 
         current_bar_hit_dol = bool(
             target_price is not None
@@ -1071,17 +1057,6 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         if emit_both and htf_regime != "ACCUMULATION":
             model_candidates.append(EntryModel.SMT_REACTION)
 
-        target_dol = select_target_dol(
-            _dol_ctx_from_row(
-                row,
-                bias,
-                pip_value=risk_cfg.pip_value,
-                current_timestamp=ts,
-                htf_order_blocks=htf_order_blocks,
-            ),
-            cfg=dol_cfg,
-        )
-        target_price = None if target_dol is None else float(target_dol.price)
         for model in model_candidates:
             trig = None
             entry_price = None
@@ -1115,6 +1090,20 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 if pd.isna(break_level) or sweep_penetration < float(entry_cfg.aggressive_sweep_min_penetration_pips):
                     continue
                 entry_price = float(break_level)
+                target_dol = select_target_dol(
+                    _dol_ctx_from_row(
+                        row,
+                        bias,
+                        signal_direction=setup_direction,
+                        pip_value=risk_cfg.pip_value,
+                        current_timestamp=ts,
+                        htf_order_blocks=htf_order_blocks,
+                    ),
+                    cfg=dol_cfg,
+                )
+                target_price = None if target_dol is None else float(target_dol.price)
+                if target_price is not None:
+                    active_cycle_dol_price = target_price
                 rr_to_dol = _estimate_rr_to_dol(
                     row,
                     setup_direction,
@@ -1230,6 +1219,20 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     entry_price = float(o[i])
                     if entry_price is None:
                         continue
+                    target_dol = select_target_dol(
+                        _dol_ctx_from_row(
+                            row,
+                            bias,
+                            signal_direction=fbos_direction,
+                            pip_value=risk_cfg.pip_value,
+                            current_timestamp=ts,
+                            htf_order_blocks=htf_order_blocks,
+                        ),
+                        cfg=dol_cfg,
+                    )
+                    target_price = None if target_dol is None else float(target_dol.price)
+                    if target_price is not None:
+                        active_cycle_dol_price = target_price
                     rr_to_dol = _estimate_rr_to_dol(
                         row,
                         fbos_direction,
@@ -1333,6 +1336,20 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 entry_price = _limit_entry_price_from_row(row, EntryModel.MITIGATION, smt_direction)
                 if entry_price is None:
                     continue
+                target_dol = select_target_dol(
+                    _dol_ctx_from_row(
+                        row,
+                        bias,
+                        signal_direction=smt_direction,
+                        pip_value=risk_cfg.pip_value,
+                        current_timestamp=ts,
+                        htf_order_blocks=htf_order_blocks,
+                    ),
+                    cfg=dol_cfg,
+                )
+                target_price = None if target_dol is None else float(target_dol.price)
+                if target_price is not None:
+                    active_cycle_dol_price = target_price
                 rr_to_dol = _estimate_rr_to_dol(
                     row,
                     smt_direction,
@@ -1362,6 +1379,20 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 entry_price = _limit_entry_price_from_row(row, model, direction)
                 if entry_price is None:
                     continue
+                target_dol = select_target_dol(
+                    _dol_ctx_from_row(
+                        row,
+                        bias,
+                        signal_direction=direction,
+                        pip_value=risk_cfg.pip_value,
+                        current_timestamp=ts,
+                        htf_order_blocks=htf_order_blocks,
+                    ),
+                    cfg=dol_cfg,
+                )
+                target_price = None if target_dol is None else float(target_dol.price)
+                if target_price is not None:
+                    active_cycle_dol_price = target_price
                 rr_to_dol = _estimate_rr_to_dol(
                     row,
                     direction,
@@ -1515,6 +1546,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     and (s.model == EntryModel.FBOS)
                     and bool(instrument_cfg.get("block_short_fbos", False))
                 ),
+                "relax_counter_htf_bias": bool(risk_cfg.relax_counter_htf_bias),
                 "news_window_block": bool(s.tags.get("news_window_block", False)),
             }
         )
