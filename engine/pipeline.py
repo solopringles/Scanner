@@ -47,8 +47,35 @@ def _break_matrix_no_lookahead(df: pd.DataFrame, lookback: int = 20) -> dict[str
     h = df["high"]
     l = df["low"]
     c = df["close"]
-    prior_high = h.rolling(lookback, min_periods=lookback).max().shift(1)
-    prior_low = l.rolling(lookback, min_periods=lookback).min().shift(1)
+    ts = pd.DatetimeIndex(df.index)
+    # FX market-open mask in UTC: Sunday 22:00 -> Friday 22:00.
+    is_open = pd.Series(
+        (
+            ((ts.weekday >= 0) & (ts.weekday <= 3))
+            | ((ts.weekday == 4) & (ts.hour < 22))
+            | ((ts.weekday == 6) & (ts.hour >= 22))
+        ),
+        index=df.index,
+    )
+
+    # Reset structural lookbacks across both closed-market windows and any
+    # unexpected data gaps so stale liquidity never leaks into the next cycle.
+    active_idx = df.index[is_open.to_numpy()]
+    prior_high = pd.Series(index=df.index, dtype=float)
+    prior_low = pd.Series(index=df.index, dtype=float)
+    if len(active_idx) > 0:
+        active_gap = pd.Series(active_idx).diff().gt(pd.Timedelta(hours=1)).fillna(False)
+        active_segment_id = active_gap.cumsum().astype(int).to_numpy()
+        active_ts = pd.DatetimeIndex(active_idx)
+        active_h = h.loc[active_idx]
+        active_l = l.loc[active_idx]
+        for seg in pd.Index(active_segment_id).unique():
+            seg_mask = active_segment_id == seg
+            seg_idx = active_ts[seg_mask]
+            seg_h = active_h.loc[seg_idx]
+            seg_l = active_l.loc[seg_idx]
+            prior_high.loc[seg_idx] = seg_h.rolling(lookback, min_periods=lookback).max().shift(1)
+            prior_low.loc[seg_idx] = seg_l.rolling(lookback, min_periods=lookback).min().shift(1)
 
     close_break_high = (c > prior_high).fillna(False).to_numpy()
     close_break_low = (c < prior_low).fillna(False).to_numpy()
@@ -524,8 +551,8 @@ def _major_level_taken(row: pd.Series, flags: dict, *, use_close_break: bool = F
     high = float(row["high"])
     low = float(row["low"])
     close = float(row["close"])
-    hi_lvls = [row.get("session_high"), row.get("pdh"), row.get("pwh"), row.get("smt_open")]
-    lo_lvls = [row.get("session_low"), row.get("pdl"), row.get("pwl"), row.get("smt_open")]
+    hi_lvls = [row.get("nearest_eqh_price"), row.get("session_high"), row.get("pdh"), row.get("pwh"), row.get("smt_open")]
+    lo_lvls = [row.get("nearest_eql_price"), row.get("session_low"), row.get("pdl"), row.get("pwl"), row.get("smt_open")]
 
     if use_close_break:
         if flags.get("close_break_high", False):
