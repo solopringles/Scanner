@@ -141,7 +141,8 @@ def simulate_limit_order_trade(
     mfe = 0.0
     prev_bar: pd.Series | None = None
     pullback_active = False
-    pullback_trigger_price: float | None = None
+    pullback_high: float | None = None
+    pullback_low: float | None = None
     for ts, bar in post_fill.iterrows():
         if max_exit_ts is not None and ts > max_exit_ts:
             trade.state = TradeState.CLOSED
@@ -198,25 +199,33 @@ def simulate_limit_order_trade(
         if trade.be_trigger_price is None:
             if prev_bar is not None:
                 if order.direction == "long":
-                    if not pullback_active and (float(bar["low"]) < float(prev_bar["low"]) or float(bar["close"]) < float(prev_bar["close"])):
+                    if not pullback_active and (
+                        float(bar["low"]) < float(prev_bar["low"]) or float(bar["close"]) < float(prev_bar["close"])
+                    ):
                         pullback_active = True
-                        pullback_trigger_price = float(bar["high"])
-                    elif pullback_active and pullback_trigger_price is not None:
-                        if float(bar["high"]) > float(pullback_trigger_price):
-                            trade.be_trigger_price = float(pullback_trigger_price)
+                        pullback_high = float(prev_bar["high"])
+                        pullback_low = float(bar["low"])
+                    elif pullback_active and pullback_high is not None and pullback_low is not None:
+                        pullback_high = max(float(pullback_high), float(bar["high"]))
+                        pullback_low = min(float(pullback_low), float(bar["low"]))
+                        # Once the pullback leg has clearly reversed, arm BE on the pullback high.
+                        if float(bar["high"]) > float(prev_bar["high"]) and float(bar["close"]) > float(prev_bar["close"]):
+                            trade.be_trigger_price = float(pullback_high)
                             trade.be_armed = True
-                        else:
-                            pullback_trigger_price = max(float(pullback_trigger_price), float(bar["high"]))
                 else:
-                    if not pullback_active and (float(bar["high"]) > float(prev_bar["high"]) or float(bar["close"]) > float(prev_bar["close"])):
+                    if not pullback_active and (
+                        float(bar["high"]) > float(prev_bar["high"]) or float(bar["close"]) > float(prev_bar["close"])
+                    ):
                         pullback_active = True
-                        pullback_trigger_price = float(bar["low"])
-                    elif pullback_active and pullback_trigger_price is not None:
-                        if float(bar["low"]) < float(pullback_trigger_price):
-                            trade.be_trigger_price = float(pullback_trigger_price)
+                        pullback_low = float(prev_bar["low"])
+                        pullback_high = float(bar["high"])
+                    elif pullback_active and pullback_high is not None and pullback_low is not None:
+                        pullback_high = max(float(pullback_high), float(bar["high"]))
+                        pullback_low = min(float(pullback_low), float(bar["low"]))
+                        # Once the pullback leg has clearly reversed, arm BE on the pullback low.
+                        if float(bar["low"]) < float(prev_bar["low"]) and float(bar["close"]) < float(prev_bar["close"]):
+                            trade.be_trigger_price = float(pullback_low)
                             trade.be_armed = True
-                        else:
-                            pullback_trigger_price = min(float(pullback_trigger_price), float(bar["low"]))
 
         trade = manage_trade_state(trade, bar.to_dict(), risk_cfg)
         if trade.state in (TradeState.CLOSED, TradeState.INVALIDATED):

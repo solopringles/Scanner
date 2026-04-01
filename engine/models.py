@@ -70,6 +70,10 @@ class HTFBreakPoint:
     price: float
     direction: str
     phase: str
+    is_major: bool = False
+    drake_candle: bool = False
+    manipulation_side: str = ""
+    source_tf: str = "1H"
 
 
 @dataclass(slots=True)

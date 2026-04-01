@@ -157,14 +157,29 @@ def _build_htf_regime_context(
     """
     Build a coarse HTF bias/regime overlay from 1H structure and resolve HTF zones.
     """
-    df_htf = df_5m.resample("1H").agg(
-        {
-            "open": "first",
-            "high": "max",
-            "low": "min",
-            "close": "last",
-        }
-    ).dropna(subset=["open", "high", "low", "close"])
+    agg_spec: dict[str, str] = {
+        "open": "first",
+        "high": "max",
+        "low": "min",
+        "close": "last",
+    }
+    for col in (
+        "nearest_eqh_price",
+        "nearest_eql_price",
+        "session_high",
+        "session_low",
+        "pdh",
+        "pdl",
+        "pwh",
+        "pwl",
+        "smt_open",
+        "internal_dol",
+        "internal_dol_direction",
+    ):
+        if col in df_5m.columns:
+            agg_spec[col] = "last"
+
+    df_htf = df_5m.resample("1h").agg(agg_spec).dropna(subset=["open", "high", "low", "close"])
     if df_htf.empty:
         empty = pd.Series(dtype="object")
         return empty, empty, empty, empty, [], []
@@ -187,21 +202,52 @@ def _build_htf_regime_context(
             "sweep_reject_low": bool(br_htf["sweep_reject_low"][i]),
             "breaks_level": bool(br_htf["breaks_level"][i]),
         }
-        break_ctx.append(flags)
         phase_before = phase_vals[i - 1] if i > 0 else phase_vals[i]
-        reversal_now = bool(flags["sweep_reject_high"] or flags["sweep_reject_low"])
+        drake_candle = bool(
+            (flags["close_break_high"] and flags["close_break_low"])
+            or (flags["sweep_reject_high"] and flags["sweep_reject_low"])
+        )
+        hour_row = df_htf.iloc[i]
+        if drake_candle:
+            direction, _, manipulation_side = _resolve_htf_drake_candle(
+                df_5m,
+                pd.Timestamp(df_htf.index[i]),
+                prior_high=float(br_htf["prior_high"][i]),
+                prior_low=float(br_htf["prior_low"][i]),
+                hour_open=float(hour_row["open"]),
+                hour_close=float(hour_row["close"]),
+            )
+            effective_flags = dict(flags)
+            if direction == "long":
+                effective_flags["close_break_low"] = False
+                effective_flags["sweep_reject_low"] = False
+            else:
+                effective_flags["close_break_high"] = False
+                effective_flags["sweep_reject_high"] = False
+        else:
+            direction = "long" if flags["close_break_high"] or flags["sweep_reject_high"] else "short"
+            manipulation_side = "high" if direction == "short" else "low"
+            effective_flags = flags
+        break_ctx.append(effective_flags)
+        reversal_now = bool(effective_flags["sweep_reject_high"] or effective_flags["sweep_reject_low"])
+        major_level_taken = _major_level_taken(hour_row, effective_flags, use_close_break=bool(effective_flags["close_break_high"] or effective_flags["close_break_low"]))
+        if not major_level_taken:
+            break_type_vals.append(BreakType.NONE)
+            bias_vals.append(prev_bias if carry_bias else BiasDirection.NEUTRAL)
+            regime_vals.append("ACCUMULATION" if phase_vals[i] == AMDPhase.ACCUMULATION else "TREND")
+            continue
         rbos_confirm = bool(
-            (flags["close_break_high"] or flags["close_break_low"])
+            (effective_flags["close_break_high"] or effective_flags["close_break_low"])
             and _recent_opposite_break_context(
                 break_ctx=break_ctx,
                 i=i,
-                direction="long" if flags["close_break_low"] else "short",
+                direction="long" if effective_flags["close_break_low"] else "short",
                 lookback_bars=3,
             )
         )
         btype = classify_break(
             phase_before_break=phase_before,
-            breaks_significant_level=bool(flags["breaks_level"]),
+            breaks_significant_level=bool(effective_flags["breaks_level"]),
             manipulation_signature_present=bool(reversal_now or rbos_confirm),
             later_reversal_seen=reversal_now,
             rbos_confirmation_seen=rbos_confirm,
@@ -210,8 +256,8 @@ def _build_htf_regime_context(
         break_type_vals.append(btype)
         fresh_bias = derive_bias(
             {
-                "rbos_up": btype == BreakType.RBOS and bool(flags["close_break_high"]),
-                "rbos_down": btype == BreakType.RBOS and bool(flags["close_break_low"]),
+                "rbos_up": btype == BreakType.RBOS and bool(effective_flags["close_break_high"]),
+                "rbos_down": btype == BreakType.RBOS and bool(effective_flags["close_break_low"]),
             }
         )
         if fresh_bias != BiasDirection.NEUTRAL:
@@ -234,7 +280,30 @@ def _build_htf_regime_context(
             continue
         break_bias = bias_vals[i] if i < len(bias_vals) else BiasDirection.NEUTRAL
         break_regime = regime_vals[i] if i < len(regime_vals) else "ACCUMULATION"
-        direction = "long" if btype == BreakType.RBOS and bool(br_htf["close_break_high"][i]) else "short"
+        hour_row = df_htf.iloc[i]
+        effective_flags = {
+            "close_break_high": bool(br_htf["close_break_high"][i]),
+            "close_break_low": bool(br_htf["close_break_low"][i]),
+            "sweep_reject_high": bool(br_htf["sweep_reject_high"][i]),
+            "sweep_reject_low": bool(br_htf["sweep_reject_low"][i]),
+            "breaks_level": bool(br_htf["breaks_level"][i]),
+        }
+        drake_candle = bool(
+            (effective_flags["close_break_high"] and effective_flags["close_break_low"])
+            or (effective_flags["sweep_reject_high"] and effective_flags["sweep_reject_low"])
+        )
+        if drake_candle:
+            direction, _, manipulation_side = _resolve_htf_drake_candle(
+                df_5m,
+                pd.Timestamp(df_htf.index[i]),
+                prior_high=float(br_htf["prior_high"][i]),
+                prior_low=float(br_htf["prior_low"][i]),
+                hour_open=float(hour_row["open"]),
+                hour_close=float(hour_row["close"]),
+            )
+        else:
+            manipulation_side = "high" if bool(effective_flags["close_break_high"] or effective_flags["sweep_reject_high"]) else "low"
+            direction = "long" if btype == BreakType.RBOS and effective_flags["close_break_high"] else "short"
         price = float(df_htf.iloc[i]["high"] if direction == "short" else df_htf.iloc[i]["low"])
         htf_break_points.append(
             HTFBreakPoint(
@@ -246,6 +315,16 @@ def _build_htf_regime_context(
                 price=price,
                 direction=direction,
                 phase=phase_vals[i].value if isinstance(phase_vals[i], AMDPhase) else str(phase_vals[i]),
+                is_major=bool(
+                    _major_level_taken(
+                        hour_row,
+                        effective_flags,
+                        use_close_break=bool(effective_flags["close_break_high"] or effective_flags["close_break_low"]),
+                    )
+                ),
+                drake_candle=drake_candle,
+                manipulation_side=manipulation_side,
+                source_tf="1H",
             )
         )
 
@@ -445,8 +524,8 @@ def _major_level_taken(row: pd.Series, flags: dict, *, use_close_break: bool = F
     high = float(row["high"])
     low = float(row["low"])
     close = float(row["close"])
-    hi_lvls = [row.get("nearest_eqh_price"), row.get("session_high"), row.get("pdh"), row.get("pwh")]
-    lo_lvls = [row.get("nearest_eql_price"), row.get("session_low"), row.get("pdl"), row.get("pwl")]
+    hi_lvls = [row.get("session_high"), row.get("pdh"), row.get("pwh"), row.get("smt_open")]
+    lo_lvls = [row.get("session_low"), row.get("pdl"), row.get("pwl"), row.get("smt_open")]
 
     if use_close_break:
         if flags.get("close_break_high", False):
@@ -570,6 +649,51 @@ def _recent_opposite_break_context(
         if direction == "short" and (flags["close_break_high"] or flags["sweep_reject_high"]):
             return True
     return False
+
+
+def _resolve_htf_drake_candle(
+    df_5m: pd.DataFrame,
+    hour_ts: pd.Timestamp,
+    *,
+    prior_high: float,
+    prior_low: float,
+    hour_open: float,
+    hour_close: float,
+) -> tuple[str, bool, str]:
+    """
+    Resolve same-bar outside candles using the hourly displacement side and the
+    5m sequence inside the hour.
+    Returns (direction, drake_candle, manipulation_side).
+    """
+    hour_start = pd.Timestamp(hour_ts)
+    hour_end = hour_start + pd.Timedelta(hours=1)
+    window = df_5m.loc[(df_5m.index >= hour_start) & (df_5m.index < hour_end)]
+    if window.empty:
+        direction = "long" if hour_close >= hour_open else "short"
+        return direction, False, ""
+
+    first_high_ts = None
+    first_low_ts = None
+    for ts, row in window.iterrows():
+        if first_high_ts is None and float(row["high"]) > prior_high:
+            first_high_ts = ts
+        if first_low_ts is None and float(row["low"]) < prior_low:
+            first_low_ts = ts
+        if first_high_ts is not None and first_low_ts is not None:
+            break
+
+    drake_candle = bool(first_high_ts is not None and first_low_ts is not None)
+    if not drake_candle:
+        if first_high_ts is not None:
+            return "short", False, "high"
+        if first_low_ts is not None:
+            return "long", False, "low"
+        direction = "long" if hour_close >= hour_open else "short"
+        return direction, False, ""
+
+    manipulation_side = "high" if first_high_ts <= first_low_ts else "low"
+    direction = "long" if hour_close >= hour_open else "short"
+    return direction, True, manipulation_side
 
 
 def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> PipelineArtifacts:
@@ -771,6 +895,14 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         cycle_dol_hit_vals.append(active_cycle_dol_hit)
         cycle_dol_price_vals.append(active_cycle_dol_price)
 
+    htf_dol_hit_series_raw = (
+        pd.Series(cycle_dol_hit_vals, index=df.index, name="cycle_dol_hit")
+        .resample("1h")
+        .max()
+        .reindex(htf_bias_series_raw.index, method="ffill")
+        .fillna(False)
+    )
+
     phase_series = pd.Series([p.value for p in phase_vals], index=df.index, name="amd_phase")
     break_series = pd.Series([b.value for b in break_vals], index=df.index, name="break_type")
     bias_series = pd.Series([b.value for b in bias_vals], index=df.index, name="bias")
@@ -819,6 +951,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         htf_order_blocks,
         htf_bias_series=htf_bias_series_raw,
         htf_regime_series=htf_regime_series_raw,
+        htf_dol_hit_series=htf_dol_hit_series_raw,
     )
     setup_candidates: list[SetupSignal] = []
     setups: list[SetupSignal] = []
