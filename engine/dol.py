@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import pandas as pd
+
 from .config import DOLConfig
 from .models import DOLCandidate, OBZone
 from .types import BiasDirection, DOLType, ZoneRole
@@ -56,7 +58,8 @@ def collect_dol_candidates(ctx: dict) -> list[DOLCandidate]:
         for i, ob in enumerate(htf_order_blocks):
             if not isinstance(ob, OBZone):
                 continue
-            if current_ts is not None and ob.timestamp > current_ts:
+            ob_completion_time = ob.eligible_at or ob.visible_at or (ob.timestamp + pd.Timedelta(hours=1))
+            if current_ts is not None and ob_completion_time > current_ts:
                 continue
             if ob.current_role != ZoneRole.SMT.value:
                 continue

@@ -30,6 +30,14 @@ class OBZone:
     low: float
     high: float
     open_price: float | None = None
+    origin_candle: pd.Timestamp | None = None
+    opened_at: pd.Timestamp | None = None
+    closed_at: pd.Timestamp | None = None
+    visible_at: pd.Timestamp | None = None
+    eligible_at: pd.Timestamp | None = None
+    first_tap_at: pd.Timestamp | None = None
+    last_tap_at: pd.Timestamp | None = None
+    tap_count: int = 0
     induced: bool = True
     tapped: bool = False
     created_in_manipulation: bool = False
@@ -37,6 +45,7 @@ class OBZone:
     prior_state: str = "VALID_OB"
     current_role: str = "OB"
     role_reason: str = ""
+    invalidation_event: str = ""
     protected: bool = True
 
 

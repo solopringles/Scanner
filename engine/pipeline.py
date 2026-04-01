@@ -14,7 +14,7 @@ from .entries import choose_entry_model, trigger_aggressive_sweep, trigger_fbos,
 from .execution import simulate_limit_order_trade
 from .mitigation import evaluate_mitigation_context
 from .models import HTFBreakPoint, OBZone, PipelineArtifacts, SetupSignal, TradeRuntime
-from .ob import detect_inducement_obs, update_ob_lifecycle
+from .ob import detect_inducement_obs, finalize_ob_cycle, update_ob_lifecycle
 from .risk import build_order, check_invalidation, compute_sl
 from .sessions import map_session
 from .types import AMDPhase, BiasDirection, BreakType, EntryModel, ZoneRole
@@ -153,7 +153,7 @@ def _build_htf_regime_context(
     break_cfg: BreakConfig,
     ob_cfg: OBConfig,
     carry_bias: bool,
-) -> tuple[pd.Series, pd.Series, list[OBZone], list[HTFBreakPoint]]:
+) -> tuple[pd.Series, pd.Series, pd.Series, pd.Series, list[OBZone], list[HTFBreakPoint]]:
     """
     Build a coarse HTF bias/regime overlay from 1H structure and resolve HTF zones.
     """
@@ -167,7 +167,7 @@ def _build_htf_regime_context(
     ).dropna(subset=["open", "high", "low", "close"])
     if df_htf.empty:
         empty = pd.Series(dtype="object")
-        return empty, empty, [], []
+        return empty, empty, empty, empty, [], []
 
     phase_series_obj = compute_phase_series(df_htf, amd_cfg)
     phase_vals = phase_series_obj.tolist()
@@ -222,8 +222,8 @@ def _build_htf_regime_context(
         bias_vals.append(bias)
         regime_vals.append("ACCUMULATION" if phase_vals[i] == AMDPhase.ACCUMULATION else "TREND")
 
-    bias_series = pd.Series([b.value for b in bias_vals], index=df_htf.index, name="htf_bias")
-    regime_series = pd.Series(regime_vals, index=df_htf.index, name="htf_regime")
+    bias_series_raw = pd.Series([b.value for b in bias_vals], index=df_htf.index, name="htf_bias_raw")
+    regime_series_raw = pd.Series(regime_vals, index=df_htf.index, name="htf_regime_raw")
     bias_enum = pd.Series(bias_vals, index=df_htf.index, name="htf_bias_enum")
     regime_series_htf = pd.Series(regime_vals, index=df_htf.index, name="htf_regime_htf")
 
@@ -260,9 +260,9 @@ def _build_htf_regime_context(
             htf_dol_hit=False,
         )
 
-    bias_series = bias_series.reindex(df_5m.index, method="ffill").fillna(BiasDirection.NEUTRAL.value)
-    regime_series = regime_series.reindex(df_5m.index, method="ffill").fillna("ACCUMULATION")
-    return bias_series, regime_series, htf_order_blocks, htf_break_points
+    bias_series = bias_series_raw.reindex(df_5m.index, method="ffill").fillna(BiasDirection.NEUTRAL.value)
+    regime_series = regime_series_raw.reindex(df_5m.index, method="ffill").fillna("ACCUMULATION")
+    return bias_series, regime_series, bias_series_raw, regime_series_raw, htf_order_blocks, htf_break_points
 
 
 def _fbos_manipulation_leadin_matrix(
@@ -646,7 +646,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         leadin_bars=max(2, int(getattr(amd_cfg, "manipulation_min_consecutive", 3))),
         min_body_ratio=max(0.5, float(getattr(amd_cfg, "manipulation_min_body_ratio", 0.6))),
     )
-    htf_bias_series, htf_regime_series, htf_order_blocks, htf_break_points = _build_htf_regime_context(
+    htf_bias_series, htf_regime_series, htf_bias_series_raw, htf_regime_series_raw, htf_order_blocks, htf_break_points = _build_htf_regime_context(
         df,
         lookback=getattr(ob_cfg, "structure_lookback", 20),
         amd_cfg=amd_cfg,
@@ -800,6 +800,26 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
             htf_regime=final_htf_regime,
             htf_dol_hit=bool(cycle_dol_hit_vals[-1]) if cycle_dol_hit_vals else False,
         )
+    for ob in htf_order_blocks:
+        opened_at = pd.Timestamp(ob.timestamp)
+        closed_at = opened_at + pd.Timedelta(hours=1)
+        update_ob_lifecycle(
+            ob,
+            htf_bias=BiasDirection.NEUTRAL,
+            htf_regime="ACCUMULATION",
+            htf_dol_hit=False,
+            opened_at=opened_at,
+            closed_at=closed_at,
+            visible_at=closed_at,
+            eligible_at=closed_at,
+            origin_candle=opened_at,
+            tap_count=ob.tap_count,
+        )
+    finalize_ob_cycle(
+        htf_order_blocks,
+        htf_bias_series=htf_bias_series_raw,
+        htf_regime_series=htf_regime_series_raw,
+    )
     setup_candidates: list[SetupSignal] = []
     setups: list[SetupSignal] = []
     break_candidate_idx = [i for i, b in enumerate(break_vals) if b != BreakType.NONE]
