@@ -48,6 +48,7 @@ class DOLConfig:
     drop_swept_levels: bool = True
     drop_protected_levels: bool = True
     drop_session_induced: bool = True
+    relax_all_filters: bool = False
 
 
 @dataclass
@@ -65,6 +66,7 @@ class EntryConfig:
     fbos_mode: str = "conservative"  # aggressive|conservative|mitigation_wait
     mitigation_mode: str = "conservative"  # conservative|aggressive
     min_rr: float = 0.0
+    relax_all_gates: bool = False
     aggressive_sweep_start_hour: int = 0
     aggressive_sweep_end_hour: int = 24
     aggressive_sweep_min_penetration_pips: float = 0.0

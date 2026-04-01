@@ -132,8 +132,9 @@ def select_target_dol(ctx: dict, cfg: DOLConfig | None = None) -> DOLCandidate |
     cfg = cfg or DOLConfig()
     bias = ctx.get("bias", BiasDirection.NEUTRAL)
     candidates = collect_dol_candidates(ctx)
-    if cfg.require_bias_alignment:
+    if cfg.require_bias_alignment and not cfg.relax_all_filters:
         candidates = filter_dol_by_bias(candidates, bias)
-    candidates = remove_invalid_dol(candidates, ctx, cfg)
+    if not cfg.relax_all_filters:
+        candidates = remove_invalid_dol(candidates, ctx, cfg)
     ranked = rank_dol_candidates(candidates)
     return ranked[0] if ranked else None

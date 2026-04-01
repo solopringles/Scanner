@@ -10,7 +10,17 @@ from .bias import derive_bias, invalidate_bias
 from .breaks import classify_break
 from .config import AMDConfig, BreakConfig, DOLConfig, EntryConfig, OBConfig, RiskConfig, SessionConfig
 from .dol import collect_dol_candidates, select_target_dol
-from .entries import choose_entry_model, trigger_aggressive_sweep, trigger_fbos, trigger_mitigation, trigger_smt_reaction
+from .entries import (
+    aggressive_sweep_gate_report,
+    choose_entry_model,
+    fbos_gate_report,
+    mitigation_gate_report,
+    smt_reaction_gate_report,
+    trigger_aggressive_sweep,
+    trigger_fbos,
+    trigger_mitigation,
+    trigger_smt_reaction,
+)
 from .execution import simulate_limit_order_trade
 from .mitigation import evaluate_mitigation_context
 from .models import HTFBreakPoint, OBZone, PipelineArtifacts, SetupSignal, TradeRuntime
@@ -1085,6 +1095,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
             fbos_level_source = None
             aggressive_level_source = None
             sweep_penetration = None
+            gate_report: dict[str, bool] = {}
 
             if model == EntryModel.AGGRESSIVE_SWEEP:
                 if not external_edge:
@@ -1112,19 +1123,18 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     risk_cfg,
                     model=model,
                 )
-                trig = trigger_aggressive_sweep(
-                    {
-                        "session_hour_london": _london_hour(ts),
-                        "sweep_reject_high": bool(flags["sweep_reject_high"]),
-                        "sweep_reject_low": bool(flags["sweep_reject_low"]),
-                        "sweep_penetration_pips": sweep_penetration,
-                        "structural_level_taken": _major_level_taken(row, flags, use_close_break=False),
-                        "bias_aligned": (bias != BiasDirection.NEUTRAL) and (setup_direction == direction),
-                        "dol_visible": target_price is not None,
-                        "rr_to_dol": rr_to_dol,
-                    },
-                    cfg=entry_cfg,
-                )
+                aggressive_ctx = {
+                    "session_hour_london": _london_hour(ts),
+                    "sweep_reject_high": bool(flags["sweep_reject_high"]),
+                    "sweep_reject_low": bool(flags["sweep_reject_low"]),
+                    "sweep_penetration_pips": sweep_penetration,
+                    "structural_level_taken": _major_level_taken(row, flags, use_close_break=False),
+                    "bias_aligned": (bias != BiasDirection.NEUTRAL) and (setup_direction == direction),
+                    "dol_visible": target_price is not None,
+                    "rr_to_dol": rr_to_dol,
+                }
+                gate_report = aggressive_sweep_gate_report(aggressive_ctx, cfg=entry_cfg)
+                trig = trigger_aggressive_sweep(aggressive_ctx, cfg=entry_cfg)
                 if trig is None:
                     continue
                 aggressive_level_source = _infer_fbos_level_source(row, sweep_side, use_close_break=False)
@@ -1172,23 +1182,22 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     )
 
                     fbos_level_source = _infer_fbos_level_source(htf_row, sweep_side, use_close_break=False)
-                    trig = trigger_fbos(
-                        _fbos_trigger_ctx(
-                            require_prior_accumulation_for_fbos=entry_cfg.require_prior_accumulation_for_fbos,
-                            prior_accumulation=bool(accum_recent[i - 1]) if i > 0 else False,
-                            momentum_breakout=bool(htf_ctx["momentum_breakout"]),
-                            structural_level_taken=_major_level_taken(htf_row, htf_flags, use_close_break=False),
-                            bias_aligned=(bias != BiasDirection.NEUTRAL) and (fbos_direction == direction),
-                            is_high_vol=bool(high_vol_arr[i - 1]) if i > 0 else False,
-                            reclaim_strength_ok=True,
-                            exhaustion_confirmed=True,
-                            dol_visible=target_price is not None,
-                            rr_to_dol=rr_to_dol,
-                            post_sweep_confirmation=post_sweep_confirmation,
-                            ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
-                        ),
-                        cfg=entry_cfg,
+                    fbos_ctx = _fbos_trigger_ctx(
+                        require_prior_accumulation_for_fbos=entry_cfg.require_prior_accumulation_for_fbos,
+                        prior_accumulation=bool(accum_recent[i - 1]) if i > 0 else False,
+                        momentum_breakout=bool(htf_ctx["momentum_breakout"]),
+                        structural_level_taken=_major_level_taken(htf_row, htf_flags, use_close_break=False),
+                        bias_aligned=(bias != BiasDirection.NEUTRAL) and (fbos_direction == direction),
+                        is_high_vol=bool(high_vol_arr[i - 1]) if i > 0 else False,
+                        reclaim_strength_ok=True,
+                        exhaustion_confirmed=True,
+                        dol_visible=target_price is not None,
+                        rr_to_dol=rr_to_dol,
+                        post_sweep_confirmation=post_sweep_confirmation,
+                        ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
                     )
+                    gate_report = fbos_gate_report(fbos_ctx, cfg=entry_cfg)
+                    trig = trigger_fbos(fbos_ctx, cfg=entry_cfg)
                     setup_sweep_low = float(htf_row["low"])
                     setup_sweep_high = float(htf_row["high"])
                     setup_direction = fbos_direction
@@ -1283,25 +1292,24 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                         sweep_side,
                         use_close_break=True,
                     )
-                    trig = trigger_fbos(
-                        _fbos_trigger_ctx(
-                            require_prior_accumulation_for_fbos=entry_cfg.require_prior_accumulation_for_fbos,
-                            prior_accumulation=bool(accum_recent[break_i]),
-                            momentum_breakout=bool(fbos_leadin_flags[break_i]),
-                            structural_level_taken=_major_level_taken(
-                                df.iloc[break_i], break_flags, use_close_break=True
-                            ),
-                            bias_aligned=(bias != BiasDirection.NEUTRAL) and (fbos_direction == direction),
-                            is_high_vol=bool(high_vol_arr[break_i]),
-                            reclaim_strength_ok=bool(reclaim_strength_ok),
-                            exhaustion_confirmed=bool(exhaustion_confirmed),
-                            dol_visible=target_price is not None,
-                            rr_to_dol=rr_to_dol,
-                            post_sweep_confirmation=post_sweep_confirmation,
-                            ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
+                    fbos_ctx = _fbos_trigger_ctx(
+                        require_prior_accumulation_for_fbos=entry_cfg.require_prior_accumulation_for_fbos,
+                        prior_accumulation=bool(accum_recent[break_i]),
+                        momentum_breakout=bool(fbos_leadin_flags[break_i]),
+                        structural_level_taken=_major_level_taken(
+                            df.iloc[break_i], break_flags, use_close_break=True
                         ),
-                        cfg=entry_cfg,
+                        bias_aligned=(bias != BiasDirection.NEUTRAL) and (fbos_direction == direction),
+                        is_high_vol=bool(high_vol_arr[break_i]),
+                        reclaim_strength_ok=bool(reclaim_strength_ok),
+                        exhaustion_confirmed=bool(exhaustion_confirmed),
+                        dol_visible=target_price is not None,
+                        rr_to_dol=rr_to_dol,
+                        post_sweep_confirmation=post_sweep_confirmation,
+                        ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
                     )
+                    gate_report = fbos_gate_report(fbos_ctx, cfg=entry_cfg)
+                    trig = trigger_fbos(fbos_ctx, cfg=entry_cfg)
                     setup_sweep_low = float(l[break_i])
                     setup_sweep_high = float(h[break_i])
                     setup_direction = fbos_direction
@@ -1333,17 +1341,16 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     risk_cfg,
                     model=model,
                 )
-                trig = trigger_smt_reaction(
-                    {
-                        "zone_role": smt_mctx["active_ob_role"],
-                        "ob_tap_seen": smt_mctx["ob_tap_seen"],
-                        "reaction_induced_structure": smt_mctx.get("reaction_induced_structure", False),
-                        "m5_bos_after_tap": smt_mctx["m5_bos_after_tap"],
-                        "dol_visible": target_price is not None,
-                        "rr_to_dol": rr_to_dol,
-                    },
-                    cfg=entry_cfg,
-                )
+                smt_ctx = {
+                    "zone_role": smt_mctx["active_ob_role"],
+                    "ob_tap_seen": smt_mctx["ob_tap_seen"],
+                    "reaction_induced_structure": smt_mctx.get("reaction_induced_structure", False),
+                    "m5_bos_after_tap": smt_mctx["m5_bos_after_tap"],
+                    "dol_visible": target_price is not None,
+                    "rr_to_dol": rr_to_dol,
+                }
+                gate_report = smt_reaction_gate_report(smt_ctx, cfg=entry_cfg)
+                trig = trigger_smt_reaction(smt_ctx, cfg=entry_cfg)
                 if trig is None:
                     continue
                 mctx = smt_mctx
@@ -1395,20 +1402,19 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     )
                     if mitigation_risk > 0 and mitigation_reward > 0:
                         mitigation_rr = mitigation_reward / mitigation_risk
-                trig = trigger_mitigation(
-                    {
-                        "valid_inducement_ob": mctx["valid_inducement_ob"],
-                        "ob_previously_tapped": mctx["ob_previously_tapped"],
-                        "bias_aligned": bias != BiasDirection.NEUTRAL,
-                        "dol_visible": target_price is not None,
-                        "rr_to_dol": mitigation_rr,
-                        "ob_tap_seen": mctx["ob_tap_seen"],
-                        "m5_bos_after_tap": mctx["m5_bos_after_tap"],
-                        "extreme_confluence": bool(row.get("extreme_confluence", False)),
-                        "zone_role": mctx.get("active_ob_role"),
-                    },
-                    cfg=entry_cfg,
-                )
+                mitigation_ctx = {
+                    "valid_inducement_ob": mctx["valid_inducement_ob"],
+                    "ob_previously_tapped": mctx["ob_previously_tapped"],
+                    "bias_aligned": bias != BiasDirection.NEUTRAL,
+                    "dol_visible": target_price is not None,
+                    "rr_to_dol": mitigation_rr,
+                    "ob_tap_seen": mctx["ob_tap_seen"],
+                    "m5_bos_after_tap": mctx["m5_bos_after_tap"],
+                    "extreme_confluence": bool(row.get("extreme_confluence", False)),
+                    "zone_role": mctx.get("active_ob_role"),
+                }
+                gate_report = mitigation_gate_report(mitigation_ctx, cfg=entry_cfg)
+                trig = trigger_mitigation(mitigation_ctx, cfg=entry_cfg)
                 ob_low = mctx.get("active_ob_low")
                 ob_high = mctx.get("active_ob_high")
                 setup_direction = direction
@@ -1484,6 +1490,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 "aggressive_sweep_ob_high": float(row["high"]) if model == EntryModel.AGGRESSIVE_SWEEP else None,
                 "rbos_logged": bool(btype == BreakType.RBOS),
                 "rbos_confirmation_seen": bool(rbos_confirm),
+                "gate_report": gate_report,
                 "ob_low": ob_low,
                 "ob_high": ob_high,
             }

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from engine import BreakConfig, EntryConfig, RiskConfig
+from engine import BreakConfig, DOLConfig, EntryConfig, RiskConfig
 
 
 def infer_pair_params(pair: str) -> tuple[float, float, float]:
@@ -37,11 +37,19 @@ def build_default_runner_config(
             require_manipulation_context_for_rbos=True,
             require_accumulation_for_fbos=False,
         ),
+        "dol_cfg": DOLConfig(
+            require_bias_alignment=False,
+            drop_swept_levels=False,
+            drop_protected_levels=False,
+            drop_session_induced=False,
+            relax_all_filters=True,
+        ),
         "entry_cfg": EntryConfig(
             beginner_mode=False,
             fbos_mode="aggressive",
             mitigation_mode="conservative",
-            min_rr=2.0,
+            min_rr=0.0,
+            relax_all_gates=True,
             require_prior_accumulation_for_fbos=False,
             fbos_min_penetration_pips=0.0,
             fbos_gate_prior_accumulation=False,
@@ -63,10 +71,10 @@ def build_default_runner_config(
             risk_per_trade=0.01,
             pip_value=pip_value,
             min_stop_pips=3.0,
-            min_rr_threshold=2.0,
-            fill_timeout_bars=24,
-            fail_fast_bars=3,
-            fail_fast_rr=0.5,
+            min_rr_threshold=0.0,
+            fill_timeout_bars=288,
+            fail_fast_bars=0,
+            fail_fast_rr=0.0,
             spread_pips=spread_pips,
             entry_slippage_pips=slip_pips,
             exit_slippage_pips=slip_pips,
