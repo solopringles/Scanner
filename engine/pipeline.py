@@ -208,6 +208,9 @@ def _build_htf_regime_context(
             or (flags["sweep_reject_high"] and flags["sweep_reject_low"])
         )
         hour_row = df_htf.iloc[i]
+        post_gap_bootstrap = bool(
+            i > 0 and (pd.Timestamp(df_htf.index[i]) - pd.Timestamp(df_htf.index[i - 1])) > pd.Timedelta(hours=1)
+        )
         if drake_candle:
             direction, _, manipulation_side = _resolve_htf_drake_candle(
                 df_5m,
@@ -229,6 +232,11 @@ def _build_htf_regime_context(
             manipulation_side = "high" if direction == "short" else "low"
             effective_flags = flags
         break_ctx.append(effective_flags)
+        if post_gap_bootstrap:
+            break_type_vals.append(BreakType.NONE)
+            bias_vals.append(prev_bias if carry_bias else BiasDirection.NEUTRAL)
+            regime_vals.append("ACCUMULATION" if phase_vals[i] == AMDPhase.ACCUMULATION else "TREND")
+            continue
         reversal_now = bool(effective_flags["sweep_reject_high"] or effective_flags["sweep_reject_low"])
         major_level_taken = _major_level_taken(hour_row, effective_flags, use_close_break=bool(effective_flags["close_break_high"] or effective_flags["close_break_low"]))
         if not major_level_taken:
@@ -236,14 +244,16 @@ def _build_htf_regime_context(
             bias_vals.append(prev_bias if carry_bias else BiasDirection.NEUTRAL)
             regime_vals.append("ACCUMULATION" if phase_vals[i] == AMDPhase.ACCUMULATION else "TREND")
             continue
+        rbos_distance = _recent_opposite_break_distance(
+            break_ctx=break_ctx,
+            i=i,
+            direction="long" if effective_flags["close_break_low"] else "short",
+            lookback_bars=4,
+        )
         rbos_confirm = bool(
             (effective_flags["close_break_high"] or effective_flags["close_break_low"])
-            and _recent_opposite_break_context(
-                break_ctx=break_ctx,
-                i=i,
-                direction="long" if effective_flags["close_break_low"] else "short",
-                lookback_bars=3,
-            )
+            and rbos_distance is not None
+            and rbos_distance >= 2
         )
         btype = classify_break(
             phase_before_break=phase_before,
@@ -649,6 +659,28 @@ def _recent_opposite_break_context(
         if direction == "short" and (flags["close_break_high"] or flags["sweep_reject_high"]):
             return True
     return False
+
+
+def _recent_opposite_break_distance(
+    *,
+    break_ctx: list[dict],
+    i: int,
+    direction: str,
+    lookback_bars: int = 3,
+) -> int | None:
+    """
+    Returns the distance in bars from the most recent opposite-side break.
+    Used to keep HTF RBOS from confirming on the very first response candle
+    after a manipulative sweep.
+    """
+    start = max(0, i - lookback_bars)
+    for j in range(i - 1, start - 1, -1):
+        flags = break_ctx[j]
+        if direction == "long" and (flags["close_break_low"] or flags["sweep_reject_low"]):
+            return i - j
+        if direction == "short" and (flags["close_break_high"] or flags["sweep_reject_high"]):
+            return i - j
+    return None
 
 
 def _resolve_htf_drake_candle(
