@@ -29,6 +29,7 @@ class OBZone:
     direction: str  # long|short
     low: float
     high: float
+    open_price: float | None = None
     induced: bool = True
     tapped: bool = False
     created_in_manipulation: bool = False
@@ -48,6 +49,18 @@ class SetupSignal:
     sl_price: float | None = None
     tp_price: float | None = None
     tags: dict[str, Any] = field(default_factory=dict)
+
+
+@dataclass(slots=True)
+class HTFBreakPoint:
+    idx: int
+    timestamp: pd.Timestamp
+    break_type: str
+    bias: str
+    regime: str
+    price: float
+    direction: str
+    phase: str
 
 
 @dataclass(slots=True)
@@ -97,3 +110,5 @@ class PipelineArtifacts:
     execution_events: list[dict[str, Any]] = field(default_factory=list)
     htf_bias_series: pd.Series | None = None
     htf_regime_series: pd.Series | None = None
+    htf_order_blocks: list[OBZone] = field(default_factory=list)
+    htf_break_points: list[HTFBreakPoint] = field(default_factory=list)

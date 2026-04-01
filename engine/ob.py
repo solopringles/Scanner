@@ -155,6 +155,7 @@ def detect_inducement_obs(df: pd.DataFrame, ctx: dict) -> list[OBZone]:
                     direction="long",
                     low=float(ob_low),
                     high=float(ob_high),
+                    open_price=float(ob_open),
                     induced=True,
                     created_in_manipulation=True,
                 )
@@ -175,6 +176,7 @@ def detect_inducement_obs(df: pd.DataFrame, ctx: dict) -> list[OBZone]:
                     direction="short",
                     low=float(ob_low),
                     high=float(ob_high),
+                    open_price=float(ob_open),
                     induced=True,
                     created_in_manipulation=True,
                 )

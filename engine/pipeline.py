@@ -13,7 +13,7 @@ from .dol import collect_dol_candidates, select_target_dol
 from .entries import choose_entry_model, trigger_aggressive_sweep, trigger_fbos, trigger_mitigation, trigger_smt_reaction
 from .execution import simulate_limit_order_trade
 from .mitigation import evaluate_mitigation_context
-from .models import OBZone, PipelineArtifacts, SetupSignal, TradeRuntime
+from .models import HTFBreakPoint, OBZone, PipelineArtifacts, SetupSignal, TradeRuntime
 from .ob import detect_inducement_obs, update_ob_lifecycle
 from .risk import build_order, check_invalidation, compute_sl
 from .sessions import map_session
@@ -151,10 +151,11 @@ def _build_htf_regime_context(
     lookback: int,
     amd_cfg: AMDConfig,
     break_cfg: BreakConfig,
+    ob_cfg: OBConfig,
     carry_bias: bool,
-) -> tuple[pd.Series, pd.Series]:
+) -> tuple[pd.Series, pd.Series, list[OBZone], list[HTFBreakPoint]]:
     """
-    Build a coarse HTF bias/regime overlay from 1H structure.
+    Build a coarse HTF bias/regime overlay from 1H structure and resolve HTF zones.
     """
     df_htf = df_5m.resample("1H").agg(
         {
@@ -166,7 +167,7 @@ def _build_htf_regime_context(
     ).dropna(subset=["open", "high", "low", "close"])
     if df_htf.empty:
         empty = pd.Series(dtype="object")
-        return empty, empty
+        return empty, empty, [], []
 
     phase_series_obj = compute_phase_series(df_htf, amd_cfg)
     phase_vals = phase_series_obj.tolist()
@@ -174,6 +175,7 @@ def _build_htf_regime_context(
 
     bias_vals: list[BiasDirection] = []
     regime_vals: list[str] = []
+    break_type_vals: list[BreakType] = []
     break_ctx: list[dict] = []
     prev_bias = BiasDirection.NEUTRAL
 
@@ -205,6 +207,7 @@ def _build_htf_regime_context(
             rbos_confirmation_seen=rbos_confirm,
             cfg=break_cfg,
         )
+        break_type_vals.append(btype)
         fresh_bias = derive_bias(
             {
                 "rbos_up": btype == BreakType.RBOS and bool(flags["close_break_high"]),
@@ -221,9 +224,45 @@ def _build_htf_regime_context(
 
     bias_series = pd.Series([b.value for b in bias_vals], index=df_htf.index, name="htf_bias")
     regime_series = pd.Series(regime_vals, index=df_htf.index, name="htf_regime")
+    bias_enum = pd.Series(bias_vals, index=df_htf.index, name="htf_bias_enum")
+    regime_series_htf = pd.Series(regime_vals, index=df_htf.index, name="htf_regime_htf")
+
+    htf_order_blocks = detect_inducement_obs(df_htf, {"ob_cfg": ob_cfg})
+    htf_break_points: list[HTFBreakPoint] = []
+    for i, btype in enumerate(break_type_vals):
+        if btype == BreakType.NONE:
+            continue
+        break_bias = bias_vals[i] if i < len(bias_vals) else BiasDirection.NEUTRAL
+        break_regime = regime_vals[i] if i < len(regime_vals) else "ACCUMULATION"
+        direction = "long" if btype == BreakType.RBOS and bool(br_htf["close_break_high"][i]) else "short"
+        price = float(df_htf.iloc[i]["high"] if direction == "short" else df_htf.iloc[i]["low"])
+        htf_break_points.append(
+            HTFBreakPoint(
+                idx=i,
+                timestamp=pd.Timestamp(df_htf.index[i]),
+                break_type=btype.value,
+                bias=break_bias.value if isinstance(break_bias, BiasDirection) else str(break_bias),
+                regime=break_regime,
+                price=price,
+                direction=direction,
+                phase=phase_vals[i].value if isinstance(phase_vals[i], AMDPhase) else str(phase_vals[i]),
+            )
+        )
+
+    for ob in htf_order_blocks:
+        if ob.idx < len(bias_enum):
+            origin_bias = bias_enum.iloc[ob.idx]
+            ob.origin_bias = origin_bias.value if isinstance(origin_bias, BiasDirection) else str(origin_bias)
+        update_ob_lifecycle(
+            ob,
+            htf_bias=bias_enum.iloc[ob.idx] if ob.idx < len(bias_enum) else BiasDirection.NEUTRAL,
+            htf_regime=regime_series_htf.iloc[ob.idx] if ob.idx < len(regime_series_htf) else "ACCUMULATION",
+            htf_dol_hit=False,
+        )
+
     bias_series = bias_series.reindex(df_5m.index, method="ffill").fillna(BiasDirection.NEUTRAL.value)
     regime_series = regime_series.reindex(df_5m.index, method="ffill").fillna("ACCUMULATION")
-    return bias_series, regime_series
+    return bias_series, regime_series, htf_order_blocks, htf_break_points
 
 
 def _fbos_manipulation_leadin_matrix(
@@ -257,7 +296,14 @@ def _fbos_manipulation_leadin_matrix(
     return fbos_leadin
 
 
-def _dol_ctx_from_row(row: pd.Series, bias: BiasDirection, *, pip_value: float | None = None) -> dict:
+def _dol_ctx_from_row(
+    row: pd.Series,
+    bias: BiasDirection,
+    *,
+    pip_value: float | None = None,
+    current_timestamp: pd.Timestamp | None = None,
+    htf_order_blocks: list[OBZone] | None = None,
+) -> dict:
     current_price = row.get("close")
     return {
         "bias": bias,
@@ -276,7 +322,9 @@ def _dol_ctx_from_row(row: pd.Series, bias: BiasDirection, *, pip_value: float |
             "long" if bias == BiasDirection.BULLISH else "short" if bias == BiasDirection.BEARISH else "long",
         ),
         "current_price": float(current_price) if current_price is not None and pd.notna(current_price) else None,
+        "current_timestamp": pd.Timestamp(current_timestamp) if current_timestamp is not None else None,
         "pip_value": float(pip_value) if pip_value is not None else None,
+        "htf_order_blocks": htf_order_blocks or [],
         "invalid_dol_sources": row.get("invalid_dol_sources", []),
     }
 
@@ -553,8 +601,11 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
             setups=[],
             orders=[],
             trades=[],
+            execution_events=[],
             htf_bias_series=empty,
             htf_regime_series=empty,
+            htf_order_blocks=[],
+            htf_break_points=[],
         )
 
     o = df["open"].to_numpy()
@@ -595,11 +646,12 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         leadin_bars=max(2, int(getattr(amd_cfg, "manipulation_min_consecutive", 3))),
         min_body_ratio=max(0.5, float(getattr(amd_cfg, "manipulation_min_body_ratio", 0.6))),
     )
-    htf_bias_series, htf_regime_series = _build_htf_regime_context(
+    htf_bias_series, htf_regime_series, htf_order_blocks, htf_break_points = _build_htf_regime_context(
         df,
         lookback=getattr(ob_cfg, "structure_lookback", 20),
         amd_cfg=amd_cfg,
         break_cfg=break_cfg,
+        ob_cfg=ob_cfg,
         carry_bias=bool(instrument_cfg.get("carry_bias", True)),
     )
     htf_bias_enum = htf_bias_series.map(lambda v: BiasDirection(v) if v in BiasDirection._value2member_map_ else BiasDirection.NEUTRAL)
@@ -689,7 +741,16 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
 
         row = df.iloc[i]
         target_dol = (
-            select_target_dol(_dol_ctx_from_row(row, bias, pip_value=risk_cfg.pip_value), cfg=dol_cfg)
+            select_target_dol(
+                _dol_ctx_from_row(
+                    row,
+                    bias,
+                    pip_value=risk_cfg.pip_value,
+                    current_timestamp=idx[i],
+                    htf_order_blocks=htf_order_blocks,
+                ),
+                cfg=dol_cfg,
+            )
             if bias != BiasDirection.NEUTRAL
             else None
         )
@@ -717,7 +778,13 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
     # Candidate pool from most recent context for diagnostics only.
     last = df.iloc[-1] if n else pd.Series(dtype=float)
     dol_candidates = collect_dol_candidates(
-        _dol_ctx_from_row(last, bias_vals[-1] if bias_vals else BiasDirection.NEUTRAL, pip_value=risk_cfg.pip_value)
+        _dol_ctx_from_row(
+            last,
+            bias_vals[-1] if bias_vals else BiasDirection.NEUTRAL,
+            pip_value=risk_cfg.pip_value,
+            current_timestamp=df.index[-1] if len(df) else None,
+            htf_order_blocks=htf_order_blocks,
+        )
     )
 
     order_blocks: list[OBZone] = detect_inducement_obs(df, {"ob_cfg": ob_cfg})
@@ -809,7 +876,16 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         if emit_both and htf_regime != "ACCUMULATION":
             model_candidates.append(EntryModel.SMT_REACTION)
 
-        target_dol = select_target_dol(_dol_ctx_from_row(row, bias, pip_value=risk_cfg.pip_value), cfg=dol_cfg)
+        target_dol = select_target_dol(
+            _dol_ctx_from_row(
+                row,
+                bias,
+                pip_value=risk_cfg.pip_value,
+                current_timestamp=ts,
+                htf_order_blocks=htf_order_blocks,
+            ),
+            cfg=dol_cfg,
+        )
         target_price = None if target_dol is None else float(target_dol.price)
         for model in model_candidates:
             trig = None
@@ -928,8 +1004,8 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                         ),
                         cfg=entry_cfg,
                     )
-                    setup_sweep_low = htf_low
-                    setup_sweep_high = htf_high
+                    setup_sweep_low = float(htf_row["low"])
+                    setup_sweep_high = float(htf_row["high"])
                     setup_direction = fbos_direction
                 else:
                     # Enforce spec sequencing:
@@ -1306,4 +1382,6 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
         execution_events=execution_events,
         htf_bias_series=htf_bias_series,
         htf_regime_series=htf_regime_series,
+        htf_order_blocks=htf_order_blocks,
+        htf_break_points=htf_break_points,
     )

@@ -3,8 +3,8 @@
 from __future__ import annotations
 
 from .config import DOLConfig
-from .models import DOLCandidate
-from .types import BiasDirection, DOLType
+from .models import DOLCandidate, OBZone
+from .types import BiasDirection, DOLType, ZoneRole
 
 
 def collect_dol_candidates(ctx: dict) -> list[DOLCandidate]:
@@ -44,6 +44,36 @@ def collect_dol_candidates(ctx: dict) -> list[DOLCandidate]:
             # Internal DOL becomes more important when it is the nearest practical target.
             strength = max(0.6, 1.8 - (dist_pips / 25.0))
         push(DOLCandidate(DOLType.INTERNAL_DOL, float(v), direction, source="internal_dol", strength=strength))
+
+    current_ts = ctx.get("current_timestamp")
+    htf_order_blocks = ctx.get("htf_order_blocks", [])
+    if isinstance(htf_order_blocks, list) and htf_order_blocks:
+        current_bias = ctx.get("bias", BiasDirection.NEUTRAL)
+        if current_bias != BiasDirection.NEUTRAL:
+            zone_direction = "long" if current_bias == BiasDirection.BULLISH else "short"
+        else:
+            zone_direction = "long"
+        for i, ob in enumerate(htf_order_blocks):
+            if not isinstance(ob, OBZone):
+                continue
+            if current_ts is not None and ob.timestamp > current_ts:
+                continue
+            if ob.current_role != ZoneRole.SMT.value:
+                continue
+            if ob.open_price is None:
+                continue
+            strength = 0.97 if ob.protected else 0.92
+            push(
+                DOLCandidate(
+                    DOLType.SMT_OPEN,
+                    float(ob.open_price),
+                    zone_direction,
+                    source=f"htf_smt_open_{i}",
+                    strength=strength,
+                    swept=ob.tapped,
+                    protected=ob.protected,
+                )
+            )
 
     return out
 
