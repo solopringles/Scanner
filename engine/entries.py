@@ -57,7 +57,7 @@ def mitigation_gate_report(ctx: dict, cfg: EntryConfig | None = None) -> dict[st
     }
     report["passes"] = bool(all(report.values()))
     if cfg.relax_all_gates:
-        report["passes"] = True
+        report["passes"] = report["valid_inducement_ob"]
     return report
 
 
