@@ -63,7 +63,8 @@ class OBConfig:
 @dataclass
 class EntryConfig:
     beginner_mode: bool = False
-    fbos_mode: str = "conservative"  # aggressive|conservative|mitigation_wait
+    fbos_mode: str = "standard"  # aggressive|standard|mitigation_wait
+    fbos_emit_both_styles: bool = False
     mitigation_mode: str = "conservative"  # conservative|aggressive
     min_rr: float = 0.0
     relax_all_gates: bool = False
@@ -82,6 +83,7 @@ class EntryConfig:
     fbos_gate_post_confirmation: bool = True
     fbos_gate_require_high_vol: bool = False
     fbos_gate_reclaim_strength: bool = False
+    fbos_gate_session_reclaim: bool = False
     fbos_min_reclaim_frac: float = 0.0
     fbos_gate_exhaustion_confirmation: bool = False
     fbos_exhaustion_stretch_min: float = 1.0

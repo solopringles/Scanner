@@ -620,6 +620,10 @@ def _fbos_confirmation_pass(
     return passes, body_ratio
 
 
+def _session_reclaim_ok(session_label: str, post_sweep_confirmation: bool) -> bool:
+    return bool(session_label == "LONDON" and post_sweep_confirmation)
+
+
 def _fbos_trigger_ctx(
     *,
     require_prior_accumulation_for_fbos: bool,
@@ -631,6 +635,7 @@ def _fbos_trigger_ctx(
     reclaim_strength_ok: bool,
     exhaustion_confirmed: bool,
     dol_visible: bool,
+    session_reclaim_ok: bool,
     rr_to_dol: float,
     post_sweep_confirmation: bool,
     ob_tap_bos_after: bool,
@@ -645,6 +650,7 @@ def _fbos_trigger_ctx(
         "reclaim_strength_ok": reclaim_strength_ok,
         "exhaustion_confirmed": exhaustion_confirmed,
         "dol_visible": dol_visible,
+        "session_reclaim_ok": session_reclaim_ok,
         "rr_to_dol": rr_to_dol,
         "post_sweep_confirmation": post_sweep_confirmation,
         "ob_tap_bos_after": ob_tap_bos_after,
@@ -1070,6 +1076,8 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
             fbos_level_source = None
             aggressive_level_source = None
             sweep_penetration = None
+            fbos_entry_style = None
+            signal_ts = ts
             gate_report: dict[str, bool] = {}
 
             if model == EntryModel.AGGRESSIVE_SWEEP:
@@ -1152,7 +1160,9 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     if fbos_penetration < float(entry_cfg.fbos_min_penetration_pips):
                         continue
 
-                    entry_price = float(o[i])
+                    fbos_entry_style = "aggressive" if entry_cfg.fbos_mode == "aggressive" else "standard"
+                    signal_ts = ts - pd.Timedelta(minutes=15) if fbos_entry_style == "aggressive" else ts
+                    entry_price = float(break_level) if fbos_entry_style == "aggressive" else float(o[i])
                     rr_to_dol = _estimate_rr_to_dol(
                         htf_row,
                         fbos_direction,
@@ -1181,6 +1191,9 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                         reclaim_strength_ok=True,
                         exhaustion_confirmed=True,
                         dol_visible=target_price is not None,
+                        session_reclaim_ok=bool(
+                            fbos_level_source in {"SESSION_H", "SESSION_L"} and post_sweep_confirmation
+                        ),
                         rr_to_dol=rr_to_dol,
                         post_sweep_confirmation=post_sweep_confirmation,
                         ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
@@ -1190,6 +1203,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     setup_sweep_low = float(htf_row["low"])
                     setup_sweep_high = float(htf_row["high"])
                     setup_direction = fbos_direction
+                    session_reclaim_ok = _session_reclaim_ok(session.value, post_sweep_confirmation)
                 else:
                     # Enforce spec sequencing:
                     # t0: structural close-break, t1: opposite-direction confirmation, t2: entry.
@@ -1215,8 +1229,10 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     elif sweep_side == "low":
                         break_level = br["prior_low"][break_i]
 
+                    fbos_entry_style = "aggressive" if entry_cfg.fbos_mode == "aggressive" else "standard"
+                    signal_ts = pd.Timestamp(idx[break_i]) if fbos_entry_style == "aggressive" else ts
                     # Entry at next candle open after confirmation (t2 open).
-                    entry_price = float(o[i])
+                    entry_price = float(break_level) if fbos_entry_style == "aggressive" else float(o[i])
                     if entry_price is None:
                         continue
                     target_dol = select_target_dol(
@@ -1307,6 +1323,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                         reclaim_strength_ok=bool(reclaim_strength_ok),
                         exhaustion_confirmed=bool(exhaustion_confirmed),
                         dol_visible=target_price is not None,
+                        session_reclaim_ok=_session_reclaim_ok(session.value, post_sweep_confirmation),
                         rr_to_dol=rr_to_dol,
                         post_sweep_confirmation=post_sweep_confirmation,
                         ob_tap_bos_after=bool(row.get("ob_tap_bos_after", False)),
@@ -1316,6 +1333,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                     setup_sweep_low = float(l[break_i])
                     setup_sweep_high = float(h[break_i])
                     setup_direction = fbos_direction
+                    session_reclaim_ok = _session_reclaim_ok(session.value, post_sweep_confirmation)
 
             elif model == EntryModel.SMT_REACTION:
                 if htf_bias == BiasDirection.NEUTRAL or htf_regime == "ACCUMULATION":
@@ -1503,6 +1521,8 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 "fbos_penetration_pips": fbos_penetration if model == EntryModel.FBOS else None,
                 "fbos_sweep_side": sweep_side if model == EntryModel.FBOS else None,
                 "fbos_level_source": fbos_level_source if model == EntryModel.FBOS else None,
+                "fbos_session_reclaim_ok": session_reclaim_ok if model == EntryModel.FBOS else None,
+                "fbos_entry_style": fbos_entry_style if model == EntryModel.FBOS else None,
                 "fbos_source_tf": (htf_ctx["source_tf"] if model == EntryModel.FBOS and htf_ctx is not None and session.value == "LONDON" else "5m") if model == EntryModel.FBOS else None,
                 "aggressive_sweep_penetration_pips": sweep_penetration if model == EntryModel.AGGRESSIVE_SWEEP else None,
                 "aggressive_sweep_side": sweep_side if model == EntryModel.AGGRESSIVE_SWEEP else None,
@@ -1526,7 +1546,7 @@ def run_pipeline_for_instrument(instrument_cfg: dict, data: pd.DataFrame) -> Pip
                 "ob_high": ob_high,
             }
             candidate_signal = SetupSignal(
-                timestamp=ts,
+                timestamp=signal_ts,
                 model=model,
                 direction=setup_direction,
                 entry_price=entry_price if entry_price is not None else float("nan"),

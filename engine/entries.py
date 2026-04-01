@@ -10,15 +10,17 @@ def fbos_gate_report(ctx: dict, cfg: EntryConfig | None = None) -> dict[str, boo
     cfg = cfg or EntryConfig()
     require_prior_acc = bool(ctx.get("require_prior_accumulation_for_fbos", False))
     prior_acc_ok = bool(ctx.get("prior_accumulation", False)) if require_prior_acc else True
+    session_reclaim_ok = bool(ctx.get("session_reclaim_ok", False))
     report = {
         "prior_accumulation": prior_acc_ok,
-        "momentum_breakout": bool(ctx.get("momentum_breakout", False)),
+        "momentum_breakout": bool(ctx.get("momentum_breakout", False)) or session_reclaim_ok,
         "structural_level_taken": bool(ctx.get("structural_level_taken", False)),
         "bias_aligned": bool(ctx.get("bias_aligned", False)),
         "is_high_vol": bool(ctx.get("is_high_vol", False)),
         "reclaim_strength_ok": bool(ctx.get("reclaim_strength_ok", False)),
-        "exhaustion_confirmed": bool(ctx.get("exhaustion_confirmed", False)),
+        "exhaustion_confirmed": bool(ctx.get("exhaustion_confirmed", False)) or session_reclaim_ok,
         "dol_visible": bool(ctx.get("dol_visible", False)),
+        "session_reclaim_ok": session_reclaim_ok if cfg.fbos_gate_session_reclaim else True,
         "rr_to_dol": float(ctx.get("rr_to_dol", 0.0)) >= float(cfg.min_rr) if cfg.fbos_gate_rr_to_dol else True,
     }
     report["passes"] = bool(all(report.values()))
@@ -115,13 +117,14 @@ def trigger_fbos(ctx: dict, cfg: EntryConfig | None = None) -> EntryTrigger | No
     cfg = cfg or EntryConfig()
     if not validate_fbos_criteria(ctx, cfg):
         return None
+    session_reclaim_ok = bool(ctx.get("session_reclaim_ok", False))
     if cfg.fbos_mode == "aggressive":
         return EntryTrigger.SWEEP_CLOSE_AGGRESSIVE
-    if cfg.fbos_mode == "conservative" and (
-        (not cfg.fbos_gate_post_confirmation) or ctx.get("post_sweep_confirmation", False)
+    if cfg.fbos_mode in {"conservative", "standard"} and (
+        session_reclaim_ok or (not cfg.fbos_gate_post_confirmation) or ctx.get("post_sweep_confirmation", False)
     ):
         return EntryTrigger.POST_SWEEP_CONFIRMATION
-    if cfg.fbos_mode == "mitigation_wait" and ctx.get("ob_tap_bos_after", False):
+    if cfg.fbos_mode == "mitigation_wait" and (session_reclaim_ok or ctx.get("ob_tap_bos_after", False)):
         return EntryTrigger.OB_TAP_PLUS_M5_BOS
     return None
 

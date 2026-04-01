@@ -46,7 +46,8 @@ def build_default_runner_config(
         ),
         "entry_cfg": EntryConfig(
             beginner_mode=False,
-            fbos_mode="aggressive",
+            fbos_mode="standard",
+            fbos_emit_both_styles=False,
             mitigation_mode="conservative",
             min_rr=0.0,
             relax_all_gates=True,
@@ -60,6 +61,7 @@ def build_default_runner_config(
             fbos_gate_post_confirmation=False,
             fbos_gate_require_high_vol=True,
             fbos_gate_reclaim_strength=True,
+            fbos_gate_session_reclaim=False,
             fbos_min_reclaim_frac=0.20,
             fbos_gate_exhaustion_confirmation=True,
             fbos_exhaustion_stretch_min=1.0,
