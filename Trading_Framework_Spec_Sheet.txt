@@ -1,0 +1,562 @@
+
+===== PAGE 1 =====
+
+TRADING FRAMEWORK 
+SPECIFICATION SHEET 
+FBOS  ·  Mitigation  ·  SMT  ·  AMD  ·  DOL  ·  Bias  ·  Entry Models 
+ 
+Compiled from structured price action methodology | For educational & reference use only 
+ 
+SECTION 0 — CORE GLOSSARY 
+Precise definitions of all technical terms used in this framework 
+ 
+TERM DEFINITION 
+AMD Accumulation → Manipulation → Distribution. The three-phase market cycle. 
+Accumulation = orders building (range). Manipulation = the false/fake directional 
+move to trap retail. Distribution = the real directional move. 
+Accumulation A range-bound period where neither buyers nor sellers dominate. Orders from both 
+sides are being 'stacked'. Price does not trend — it consolidates. 
+Manipulation 
+(Inducement) 
+A strong, momentum-driven, one-sided price move designed to trap retail traders into 
+the wrong direction before the real move. Characterised by consecutive full-body 
+candles. Also called 'inducement' or 'fake move'. 
+Distribution (Real Move) The true directional move that follows manipulation. Identifiable by structured 
+pullbacks, incremental lower highs/higher lows, and market structure continuation. 
+Structure (BOS) Break of Structure. A confirmed breach of a prior significant swing high or low. Used to 
+identify trend direction. A BOS in the direction of bias = continuation. A BOS against 
+bias = must differentiate from FBoS. 
+FBoS / FBoss False Break of Structure. A BOS that is caused exclusively by manipulation. It appears 
+to confirm a trend change but is in fact a trap. Only created during the manipulation 
+phase — never during distribution. 
+RBoS / ARBoS Real Break of Structure. A BOS caused by the distribution phase — the genuine leg in 
+the intended direction. Used to confirm bias direction. Only take RBoS as bias 
+confirmation. 
+Smart Money Trap (SMT) An order block that was created during the manipulation phase. It may give an initial 
+reaction, but if price has already collected sufficient volume, it will be run through. 
+SMTs are zones where smart-money concept traders anticipate reversals but get 
+trapped. 
+Order Block (OB) The last opposing-colour candle before a strong directional push. Represents 
+institutional order placement. Becomes relevant when it has 'induced structure' — i.e., 
+the move from that OB caused a structural break. 
+
+===== PAGE 2 =====
+
+TERM DEFINITION 
+Inducement OB An order block from which price moved to cause a break of a prior structural high or 
+low. The only type of OB used for entries in this framework. 
+DOL / Draw on Liquidity The target price must reach before reversing. Always in the direction of bias. Types: 
+equal highs/lows, session highs/lows, previous daily/weekly highs/lows, SMT opens, 
+structural swing points. 
+Internal DOL A closer liquidity target within the current leg — used when price has already reached 
+the primary DOL or when the range to the external DOL is too large for a direct move. 
+Liquidity Sweep Price briefly trading beyond a structural high or low to trigger stop-losses and pending 
+orders resting there, before reversing. This is the core of the FBoS entry trigger. 
+Higher Time Frame (HTF) 
+SMT 
+An order block on a higher time frame (4H, daily) that price is reacting from. When 
+price taps an HTF SMT, the lower time frame move from that point is considered HTF 
+manipulation, not distribution. 
+POI (Point of Interest) Any zone on the chart that could cause a significant price reaction — includes order 
+blocks, SMTs, and liquidity clusters. 
+Protected High/Low A swing point that has already induced price — i.e., caused a structural move FROM 
+that level. Price is unlikely to revisit and break through a protected high/low. 
+Break & Retest (BNR) The retail concept: price breaks a level then comes back to retest it. Used in this 
+framework specifically to identify WHERE retail traders will enter so they can be 
+trapped. 
+Market Structure Shift 
+(MSS) 
+A change in the trend direction confirmed by RBoS. On lower time frames, MSS is 
+triggered when the manipulation leg is overtaken — used as the break-even trigger. 
+Power of 3 (P3) Another name for AMD applied to a full candle's price action — Open, Low 
+(manipulation), High (distribution) for a bullish day, or Open, High (manipulation), Low 
+(distribution) for a bearish day. 
+OHLC Open, High, Low, Close — the anatomy of any candle. In this framework: for a bullish 
+daily candle, the sequence should be Open → Low (manipulation) → High 
+(distribution) → Close. 
+ 
+SECTION 1 — AMD MARKET CYCLE 
+The master framework governing all price movement 
+ 
+  1.1  PHASE DEFINITIONS 
+ 
+Phase 1 — ACCUMULATION Price consolidates in a range. No trending move. Both buy and sell orders are 
+building. 
+Visually: Price oscillates between visible support and resistance. 
+Duration: Can last minutes (1M chart) or days (daily/weekly). 
+Session mapping: Asia session is typically the accumulation phase for the day. 
+Phase 2 — MANIPULATION Strong, one-sided, momentum candles moving AGAINST the intended real 
+direction. 
+Characteristics: consecutive full-body candles, fast move, no pullbacks. 
+
+===== PAGE 3 =====
+
+Purpose: Traps retail traders into the wrong direction; collects stop-losses; fills 
+institutional orders. 
+Creates: FBoS, SMTs, inducement highs/lows. 
+Session mapping: London open (07:00–10:00 London time) is typically the 
+manipulation phase. 
+Phase 3 — DISTRIBUTION The REAL directional move toward the DOL. 
+Characteristics: structured pullbacks (reaccumulation/reinducement), 
+incremental structure, pullbacks do NOT violate recent swing lows/highs. 
+Session mapping: NY session (or London continuation) is typically distribution. 
+ 
+  1.2  WEEKLY AMD MAPPING 
+ 
+Monday Accumulation for the week. Range-bound, no strong directional commitment. 
+Tuesday Manipulation. Strong directional push AGAINST the weekly intended direction. 
+Sets the weekly trap. Must take out a key structural point or mitigate a POI. 
+Wednesday Reinducement. Internal structural points of Tuesday's distribution get taken out. 
+Sets up additional trapped traders. 
+Thursday Distribution / low or high of the week printed. Price moves toward the weekly 
+DOL. 
+Friday Rebalancing. Price cools and partially retraces. Not a primary trading day. 
+Economic Calendar Rule Shift the weekly day assignments when high-impact news falls on a specific day. 
+News can act as the daily/weekly manipulation trigger — reassign phases 
+accordingly. 
+ 
+SECTION 2 — BIAS DETERMINATION 
+How to establish directional bias across time frames 
+ 
+  2.1  BIAS RULES 
+ 
+Definition Bias = the direction you expect price to travel to reach the current DOL. Bias is 
+NOT set by trend lines or candlestick patterns alone. 
+Bullish Bias Trigger 1. Price has tapped into a valid higher time frame SMT or inducement OB. 
+2. A RBoS (real break of structure) toward the upside has been printed following 
+manipulation. 
+3. The DOL is above current price (equal highs, session highs, structural highs). 
+Bearish Bias Trigger 1. Price has tapped into a valid higher time frame SMT or inducement OB from 
+above. 
+2. A RBoS toward the downside has been printed following manipulation. 
+3. The DOL is below current price. 
+Bias Invalidation Price breaks through the OB that created the bias (OB becomes SMT). 
+
+===== PAGE 4 =====
+
+DOL is reached — bias must be re-evaluated from scratch. 
+A higher time frame inducement leg is taken out in the opposing direction. 
+Time Frame Hierarchy Higher time frame bias always overrides lower time frame signals. 
+Daily bias → sets the trading direction for the day. 
+Weekly bias → sets the context for the daily bias. 
+Use 1H or 4H for structural confirmation; use M5 or M1 for entry execution. 
+Bias After DOL Hit Once DOL is reached, STOP trading toward it. Do NOT extend targets 
+speculatively. Re-identify the new DOL with fresh confirmation before taking any 
+position. 
+ 
+  2.2  TREND SWITCHING (How Bias Changes) 
+ 
+Step 1 — Existing Trend A clear sequence of higher highs + higher lows (bullish) or lower highs + lower 
+lows (bearish) is in place. 
+Step 2 — Accumulation Price stops trending and consolidates. Volume decreases. No new highs/lows 
+printed. 
+Step 3 — Manipulation A strong move OPPOSITE to the previous trend occurs. This creates FBoS — 
+appears to confirm a new trend but is a trap. Retail traders reverse their bias. 
+Step 4 — RBoS Confirmation After manipulation, price reverses and prints a REAL break of structure in the 
+ORIGINAL direction (or the new intended direction). THIS is the bias confirmation 
+trigger. 
+Step 5 — New Bias Active Bias flips only after RBoS. SMTs from the manipulation phase are now identified. 
+DOL in the new direction is set. Trade continuation models toward new DOL. 
+Key Rule You CANNOT confirm a bias change from FBoS alone. Only RBoS after 
+manipulation constitutes a genuine trend switch. 
+ 
+SECTION 3 — SMART MONEY TRAP (SMT) 
+When order blocks become traps 
+ 
+  3.1  DEFINITION & CREATION 
+ 
+What is an SMT? An order block that was created by the manipulation phase of AMD. Retail and 
+smart-money-concept traders view these as valid reversal zones, making them 
+high-probability trap locations. 
+How an OB becomes an SMT — 
+Rule 1: DOL Reached 
+When price reaches the DOL, all OBs that were previously used as continuation 
+entries now convert to SMTs. 
+Logic: If the primary move target is already hit, the directional bias reverses. OBs 
+in the prior direction are no longer valid continuation entries. 
+How an OB becomes an SMT — 
+Rule 2: BOS Away 
+When a strong RBoS is printed AWAY from an OB (i.e., price moves away with 
+conviction and does not return), that OB is reclassified as an SMT. 
+
+===== PAGE 5 =====
+
+Logic: Price has demonstrated it does not need that OB for support/resistance. 
+Any return will be a trap. 
+How an OB becomes an SMT — 
+Rule 3: FBoS Origin 
+Any OB that was created during a manipulation move is immediately classified as 
+an SMT. It may give a reaction (inducing traders), but it will ultimately be run 
+through unless volume is still required. 
+SMT vs. Valid OB Valid OB: Created by RBoS / distribution. Has not been tapped. DOL not yet 
+reached. 
+SMT: Created by FBoS / manipulation. OR DOL has been reached. OR strong BOS 
+printed away from it. 
+HTF SMT A SMT visible on 4H or daily chart. When price taps an HTF SMT, the entire lower 
+time frame move from that zone is classified as HTF manipulation — even if lower 
+time frame shows distribution. This justifies continuation trades from LTF OBs 
+within that HTF zone. 
+ 
+▶  SMT REACTION RULE 
+When price taps an HTF SMT and shows an initial rejection, this does NOT automatically mean distribution starts 
+immediately. 
+Price will typically: (1) Give initial reaction from SMT → (2) Accumulate / form miniature AMD at the SMT level → (3) 
+Then distribute away from SMT. 
+Do NOT enter on the first candle touching an SMT. Wait for confirmation per the entry model rules in Section 6. 
+ 
+SECTION 4 — DRAW ON LIQUIDITY (DOL) 
+Target identification and management 
+ 
+  4.1  TYPES OF DOL (in order of priority) 
+ 
+Equal Highs / Equal Lows Two or more swing points at the same price level. Extremely visible to retail 
+traders → magnets for stop-loss clusters → high probability DOL target. 
+Session Highs / Lows (Asia, 
+London, NY) 
+The high or low printed during a specific session. If the session has NOT induced 
+(i.e., no structural break FROM that level), it remains a valid DOL target. 
+Previous Daily High / Low (PDH 
+/ PDL) 
+Prior day's high or low. Valid DOL unless already swept or if price has induced 
+structure from beyond that level. 
+Previous Weekly High / Low Prior week's high or low. Used for HTF bias and macro DOL targeting. 
+SMT Open Price (Preferred TP 
+Target) 
+The opening price of an SMT candle. Preferred take-profit target within this 
+framework. Reason: price frequently stalls at SMT opens before deciding 
+direction. Reduces exposure and avoids holding through reversals. 
+Structural Swing Point Any clear prior high/low that has obvious stop-loss clusters resting beyond it. 
+Valid when other types do not apply. 
+ 
+  4.2  DOL RULES 
+ 
+
+===== PAGE 6 =====
+
+DOL Must Align With Bias Only target a DOL that is in the direction of your current bias. Never target a DOL 
+in the counter-bias direction as a primary target. 
+DOL Invalidation Criteria An equal high/low is NOT a valid DOL if: price has already induced structure from 
+BEYOND that level (i.e., created a protected high/low). 
+A session high/low is NOT valid if: the session has already induced (RBoS from 
+that session's move in the bias direction). 
+PDH/PDL is NOT valid if: already swept, or the structural context has changed. 
+After DOL is Hit Immediately stop trading in the prior bias direction. Re-run top-down analysis. 
+Identify new DOL. Wait for fresh manipulation and RBoS before entering again. 
+Internal DOL Used when the primary DOL is far away and price needs to rebalance before 
+continuing. 
+Identify: nearest structural high/low in the bias direction within the current leg. 
+Condition: price must have already shown signs of reaccumulation after a 
+distribution leg. 
+Usage: target internal DOL for first position; only extend to external DOL after 
+internal is taken and structure supports it. 
+ 
+SECTION 5 — FBoS ENTRY MODEL 
+False Break of Structure — Complete Specification 
+ 
+▶  FBoS DEFINITION 
+A FBoS is a break of a prior structural high or low that was caused exclusively by the MANIPULATION phase of AMD. 
+It appears to retail traders as a confirmed break of structure (a new trend), but it is a deliberate trap. 
+FBoS can ONLY exist if: Accumulation preceded it, AND the breakout move is one-sided momentum candles (no 
+pullbacks), AND price subsequently reverses in the intended direction. 
+ 
+  5.1  FBoS EXACT ENTRY CRITERIA (ALL must be met) 
+ 
+Criterion 1 — Prior Accumulation A visible range/consolidation must have formed BEFORE the FBoS move. Price 
+must have been range-bound (Asia session, or visible sideways structure on 
+the chart). 
+Criterion 2 — Momentum 
+Breakout 
+The move creating the FBoS must be strong, one-sided, consecutive full-body 
+candles. No significant pullbacks during the move. Partial candles or gradual 
+moves do NOT qualify as manipulation. 
+Criterion 3 — Structural Level 
+Taken 
+The FBoS must have swept through a visible structural high/low — not just 
+wicked through. The candle must close beyond the level (not just wick). The 
+level must have been visible and likely held stop-losses. 
+Criterion 4 — Bias Alignment The anticipated real move (distribution) must align with the higher time frame 
+bias. Do NOT enter FBoS setups that are counter to HTF bias. 
+Criterion 5 — DOL Identified Before entry, a clear DOL in the bias direction must be identified. The DOL 
+must be at least 2x the stop-loss distance away (minimum 2R target visible). 
+
+===== PAGE 7 =====
+
+Criterion 6 — Timing (Optional but 
+Preferred) 
+London session (07:00–10:00): preferred manipulation window for EU pairs. 
+NY open (13:00–16:00 London time): secondary manipulation window. 
+Avoid FBoS setups that appear at 4PM London close (often continuation, not 
+reversal) unless explicitly confirmed by AMD structure. 
+Criterion 7 — Entry Trigger Option A — Aggressive: Enter at the sweep candle's close (requires 
+experience). Stop loss = 1–3 pips beyond the swept structural level. 
+Option B — Conservative: Wait for a bullish/bearish confirmation candle (close 
+in opposing direction) AFTER the sweep. Enter on next candle open. 
+Option C — Mitigation: Wait for price to pull back to the OB formed by the 
+FBoS leg. Enter when price taps the OB (see Section 6 — Mitigation Model for 
+exact rules). 
+ 
+  5.2  FBoS EXIT CRITERIA 
+ 
+Take Profit (Primary) Opening price of the nearest SMT in the bias direction. This is the preferred TP 
+level — do not extend unless volume and structure clearly support continuation. 
+Take Profit (Secondary) Next significant DOL: equal highs/lows, session high/low, or previous daily 
+high/low in the bias direction. 
+Break Even Trigger Move stop to break even ONLY after: the pullback leg (mitigation of the FBoS 
+candle) has been overtaken by price moving in the trade direction. 
+Rule: Do NOT go break even during the first pullback. Wait for the pullback's high 
+(for shorts) or low (for longs) to be taken out by the next impulse leg. 
+Reason: Premature break even during mitigation pullback results in being 
+stopped out before the real distribution begins. 
+Partial Exit Rule If trading multiple positions: close 50% at first DOL (internal), leave 50% running 
+to secondary DOL. Move remainder to break even after partial close. 
+ 
+  5.3  FBoS INVALIDATION CONDITIONS 
+ 
+▶  INVALIDATION — TRADE IS VOID IF ANY APPLY 
+1. Price re-enters accumulation range after the FBoS move (structure has not committed to direction). 
+2. The manipulation move has pullbacks — it is not one-sided momentum. This indicates distribution, not 
+manipulation. 
+3. HTF SMT or OB is located within the stop-loss distance in the trade direction (price may be reacting from HTF 
+structure, not distributing). 
+4. DOL has already been reached on this session/day — do not enter FBoS setups post-DOL. 
+5. Economic calendar: high-impact news is imminent within 15 minutes of entry — avoid entries immediately before 
+major news events. 
+6. The swept structural level is a 'protected high/low' (already induced structure previously) — not a valid liquidity 
+target. 
+ 
+  5.4  FBoS MARKET CONTEXT REQUIREMENTS 
+ 
+
+===== PAGE 8 =====
+
+Trend Requirement FBoS works in BOTH trending and ranging markets. In a trending market, FBoS in 
+the trend direction is higher probability. Counter-trend FBoS requires HTF SMT 
+confluence. 
+Liquidity Condition High-probability: Visible equal highs/lows were present before the FBoS (obvious 
+stop-loss clusters). 
+High-probability: Multiple retail trap patterns visible (broken trend lines, 
+support/resistance breaks, BNR zones). 
+Time Frame for Entry M1 or M5 for entry execution. M15 or 1H for context. Daily for bias. M5 is the 
+recommended primary chart. 
+Volume Condition Manipulation must show high-volume, consecutive candles. If the 'manipulation' 
+move lacks momentum, reclassify it as reaccumulation and wait. 
+Pair Preference EURUSD preferred (tighter spread: 3–5 pips). GBPUSD viable (5–10 pip spread 
+increases required R). Apply same logic to indices (NAS100, etc.) with time-based 
+adjustments. 
+ 
+SECTION 6 — MITIGATION ENTRY MODEL 
+Order Block Mitigation — Complete Specification 
+ 
+▶  MITIGATION DEFINITION 
+Mitigation is an entry model where price returns to tap into an Order Block (OB) that caused a structural break 
+(inducement OB), after that OB's move has already been validated. 
+Unlike FBoS (which enters at the sweep), Mitigation enters at the origin zone of the prior impulsive move. 
+This model provides a higher Risk:Reward entry at the cost of a lower fill probability — price may not always return 
+to mitigate. 
+ 
+  6.1  IDENTIFYING A VALID INDUCEMENT ORDER BLOCK 
+ 
+OB Candle Definition The last opposing-colour candle BEFORE a strong directional push. 
+For a bullish OB: the last bearish (red/down-close) candle before a strong 
+bullish move. 
+For a bearish OB: the last bullish (green/up-close) candle before a strong 
+bearish move. 
+OB Zone Boundaries Top: highest point of the OB candle (wick high for bearish OB / body high for 
+aggressive marking). 
+Bottom: lowest point of the OB candle (wick low for bullish OB / body low for 
+aggressive marking). 
+Entry preference: Use the WICK extremes for maximum zone coverage. For 
+tighter entries with experience: use the candle body only. 
+Inducement Condition 
+(Mandatory) 
+The OB must have caused a break of a prior structural high or low. 
+Process: OB candle forms → price pushes from OB → prior structural swing 
+high/low is taken → this confirms the OB 'induced' structure. 
+An OB without inducement is NOT a valid mitigation entry — it has no 
+institutional significance. 
+
+===== PAGE 9 =====
+
+OB Candle Selection Use the candle that swept liquidity (wicked beyond a prior level) as the OB, 
+NOT just any opposing candle. 
+The OB candle that swept the most liquidity (largest wick) has the highest 
+probability of being respected on mitigation. 
+ 
+  6.2  MITIGATION EXACT ENTRY CRITERIA (ALL must be met) 
+ 
+Criterion 1 — Valid Inducement OB 
+Identified 
+The OB has already induced structure (caused a structural break). The OB 
+zone has been clearly marked with top and bottom. 
+Criterion 2 — OB Not Previously 
+Tapped 
+The OB zone has NOT been visited since it was created. A previously tapped 
+OB loses validity — it becomes an SMT or a weaker zone. 
+Criterion 3 — DOL Clearly Identified A DOL beyond the OB (in the trade direction) must be visible. Minimum R:R 
+of 2:1 required from entry to DOL. 
+Criterion 4 — Bias Alignment HTF bias must support the mitigation entry direction. Do not take bullish 
+mitigation entries in a bearish HTF environment unless in a confirmed 
+counter-bias pullback setup with explicit HTF SMT confluence. 
+Criterion 5 — Entry Trigger 
+(Conservative) 
+Wait for price to TAP into the OB zone (touch the zone boundary). 
+THEN wait for a M5 BOS (break of structure on M5) in the trade direction 
+after the tap. 
+Enter on the next candle open following the M5 BOS. 
+Stop loss: below the OB wick extreme (for bullish OB) or above the OB wick 
+extreme (for bearish OB). 
+Criterion 6 — Entry Trigger 
+(Aggressive / With Experience Only) 
+Enter limit order at the OB zone boundary before price arrives. 
+Stop loss: same as above. 
+Use ONLY if: the OB has extreme confluence (HTF SMT + inducement + 
+timing all align). 
+Criterion 7 — Timing Alignment OB should be tapped during London (07:00–13:00) or NY (13:00–17:00) 
+sessions. 
+OB tapped during Asia session = lower probability unless pair is Asia-active 
+(JPY, CHF pairs). 
+ 
+  6.3  MITIGATION EXIT CRITERIA 
+ 
+Take Profit (Primary) SMT open price of the nearest SMT in the bias direction. This is the default TP. 
+Conservative and consistent with the framework's risk management philosophy. 
+Take Profit (Secondary) Next clear DOL: equal highs/lows, session high/low, previous daily high/low. Only 
+extend to secondary TP if price has shown clear continuation momentum past the 
+primary TP level WITHOUT closing a full opposing candle. 
+Break Even Trigger Move to break even ONLY after: price takes out the most recent internal swing 
+high (for longs) or swing low (for shorts) that formed AFTER entry. 
+Rule: The first pullback after entry is often a miniature AMD — do NOT go break 
+even during this pullback. 
+Trigger: When the high of the first post-entry pullback is taken out by price (for 
+longs), go break even. 
+
+===== PAGE 10 =====
+
+Stop Loss Placement Place stop loss BELOW the wick low of the OB candle (for bullish mitigation) or 
+ABOVE the wick high (for bearish mitigation). 
+Do NOT place stop loss at the OB body boundary — the wick will frequently be 
+swept before reversal. 
+If the OB has an extreme wick (10+ pips), consider placing stop 1–2 pips beyond 
+the wick for acceptable R:R. 
+ 
+  6.4  MITIGATION INVALIDATION CONDITIONS 
+ 
+▶  INVALIDATION — TRADE IS VOID IF ANY APPLY 
+1. OB has already been tapped once since it was created — it is now either an SMT or a depleted zone. 
+2. A BOS in the opposing direction has occurred on M15 or higher since the OB was created — the OB may now be 
+acting as an SMT. 
+3. Price has already reached the primary DOL this session — do not enter mitigation setups post-DOL. 
+4. The OB is located WITHIN the accumulation range (not at the edge of the range) — internal OBs are SMTs unless 
+confirmed by HTF structure. 
+5. The inducement from the OB was not 'sharp' — i.e., a gradual move rather than a momentum impulse. Only 
+momentum-based inducements create valid OBs. 
+6. HTF context has changed: if a higher-time-frame OB or SMT is located within the stop-loss distance, the trade is 
+invalidated. 
+ 
+  6.5  OB TO SMT TRANSITION SUMMARY 
+ 
+Trigger 1 — DOL Hit OB → SMT as soon as the primary DOL in the direction of the OB's bias has been 
+reached. All OBs that were used for continuation now become traps. 
+Trigger 2 — Strong BOS Away OB → SMT when a strong, momentum RBoS is printed AWAY from the OB and 
+price shows no intention of returning within a reasonable time. The OB is 
+abandoned by the market. 
+Trigger 3 — FBoS Origin Any OB created during a manipulation leg is classified as SMT from its creation. 
+May give initial reaction (traders pile in), but will ultimately be violated if the real 
+move is strong. 
+Trigger 4 — Range Too 
+Extended 
+If price has moved significantly in the opposing direction from the OB (e.g., 100+ 
+pips away on EU), the OB is no longer acting as a relevant mitigation target — it 
+becomes an extreme SMT for a counter-bias reversal setup only. 
+ 
+SECTION 7 — HOD / LOD & DAILY CYCLE 
+High of Day / Low of Day identification rules 
+ 
+HOD / LOD Definition The highest or lowest price point reached during the current daily candle. The 
+framework's goal is to identify WHICH session prints the HOD/LOD and trade in 
+the opposing direction thereafter. 
+ 
+
+===== PAGE 11 =====
+
+SECTION 8 — ALL ENTRY MODELS SUMMARY 
+Five entry model types — when and how to use each 
+ 
+MODEL TYPE LOCATION USE CASE PRIMARY RULE 
+FBoS External Bottom/top of range Reversals + 
+Continuations 
+Enter at liquidity sweep. Wait for 
+rejection candle confirmation. SL 
+beyond swept level. 
+Mitigation External Bottom/top of range Reversals + 
+Continuations 
+Enter at OB that induced structure. 
+Wait for M5 BOS confirmation 
+after OB tap. 
+SMT Reaction Internal Mid-range Continuations Enter when SMT gives reaction 
+AND internal structure is induced. 
+BOS from SMT zone required. 
+Inverse (Inducement 
+Reaction) 
+Internal Mid-range Continuations Price mitigates OB formed from 
+SMT reaction. More internal — use 
+only with experience. 
+Inducement 
+Reaction 
+Internal Mid-range Continuations Price mitigates the original 
+inducement after breaking past it. 
+Most internal. Bias confirmation 
+use primarily. 
+ 
+▶  FRAMEWORK RULE — MODEL PRIORITY 
+Recommended learning order: FBoS first → Mitigation → SMT Reaction → Others. 
+Master ONE model before adding the next. All models operate within the AMD cycle and require bias + DOL to be 
+identified first. 
+Internal models (SMT Reaction, Inverse, Inducement Reaction) provide LOWER R:R and HIGHER fill rate. External 
+models (FBoS, Mitigation) provide HIGHER R:R and LOWER fill rate. 
+ 
+SECTION 9 — STOP LOSS & BREAK EVEN PROTOCOL 
+ 
+Stop Loss Placement Rule FBoS: 1–3 pips beyond the swept structural level (wick extreme). 
+Mitigation: Beyond the OB candle's wick extreme in the opposing direction. 
+NEVER place SL at the OB body boundary — wicks will sweep it. 
+Break Even Rule DO NOT go break even on the first post-entry pullback. 
+GO break even when: the high of the pullback leg (for longs) OR the low of the 
+pullback leg (for shorts) is taken out by the next impulse candle. 
+Rationale: First pullback is often miniature AMD. Going BE too early = stopped 
+out before distribution begins. 
+Protected Lows/Highs Rule If the post-entry pullback prints a new swing low (for longs) that is LOWER than 
+the entry-zone swing low, the setup is weakening. Reassess but do NOT 
+immediately exit — wait for a clear BOS violation. 
+Maximum Loss Rule If the OB wick extreme is violated (price closes beyond SL), the trade is fully 
+invalidated. Exit immediately. Do not average down or move stop. 
+
+===== PAGE 12 =====
+
+ 
+SECTION 10 — QUICK REFERENCE CHECKLIST 
+ 
+  Pre-Trade Checklist (run in order) 
+ 
+1.  Identify HTF bias (daily/weekly). Confirm via RBoS after manipulation. Note DOL. 
+2.  Map the current AMD phase. Is price in accumulation, manipulation, or distribution? 
+3.  Identify session timing. London open? NY open? 4PM close? 
+4.  Confirm DOL is not yet reached. If reached — DO NOT trade in that direction. 
+5.  Mark all inducement OBs on M5 and M15. Classify each as valid OB or SMT. 
+6.  Identify retail traps visible: trend lines broken? BNR zones formed? Equal highs/lows swept? 
+7.  Select entry model (FBoS or Mitigation for beginners). 
+8.  Confirm entry trigger (rejection candle / M5 BOS) is present. 
+9.  Set stop loss at OB wick extreme. Confirm minimum 2R to nearest DOL. 
+10. Set take profit at SMT open price (primary) or next DOL (secondary). 
+11. Set break-even rule BEFORE entry: 'I go BE when [specific swing level] is taken.' 
+12. Check economic calendar — no high-impact news within 15 minutes of entry. 
+ 
+▶  CORE PRINCIPLE 
+The market is driven by the need to trap the 95% (retail). Every setup in this framework exploits a moment where 
+retail traders are collectively positioned in the wrong direction. 
+Your edge is: identifying WHERE retail is trapped → entering OPPOSITE to their position → targeting WHERE their 
+stop losses are. 
+If you cannot clearly articulate which retail traders are trapped and where their stops are — do not take the trade. 
+ 
+This document is a reference spec sheet compiled from structured price action methodology. All concepts are based on historical statistical patterns. No 
+strategy guarantees profitable outcomes. Always manage risk. 

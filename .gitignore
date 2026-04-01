@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+output_v2/
+output_v2_march_smoke/
+analyse_performance/__pycache__/
+engine/__pycache__/
+*.csv
+*.png
